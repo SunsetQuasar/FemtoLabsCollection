@@ -1,0 +1,147 @@
+[manifest]
+version = "1.0.0"
+dump_lua = true
+priority = 0
+
+[[patches]]
+[patches.pattern]
+target = "functions/state_events.lua"
+pattern = "G.GAME.blind:set_blind(G.GAME.round_resets.blind)"
+position = "after"
+payload = '''
+flc_trigger_back_setting_blind_effect(G.GAME.round_resets.blind)
+'''
+match_indent = true
+
+[[patches]]
+[patches.pattern]
+target = "functions/state_events.lua"
+pattern = '''
+G.FUNCS.draw_from_play_to_discard()
+'''
+position = "at"
+payload = '''
+
+local dontdraw = false
+
+local destroyed_cards = {}
+
+if G.GAME.blind.config.blind.after_hand then
+    for k, v in pairs(G.play.cards) do
+        if G.GAME.blind.config.blind:after_hand(v) then
+            destroyed_cards[#destroyed_cards+1] = v
+            dontdraw = true
+            if #destroyed_cards == 1 then
+                G.E_MANAGER:add_event(Event({
+                trigger = 'after',
+                delay = 0.0,
+                func = (function()
+                    SMODS.juice_up_blind() 
+                    return true
+                end)}))
+            end
+            G.E_MANAGER:add_event(Event({
+            trigger = 'after',
+            delay = 0.0,
+            func = (function()
+                v:remove()
+                return true
+            end)}))
+        end
+    end
+    G.GAME.blind.triggered = true
+    for i = 1, #G.jokers.cards do
+        G.jokers.cards[i]:calculate_joker({remove_playing_cards = true, removed = destroyed_cards})
+    end
+end
+
+
+if not dontdraw then G.FUNCS.draw_from_play_to_discard() else 
+                G.E_MANAGER:add_event(Event({
+                trigger = 'before',
+                delay = 0.0,
+                func = (function()
+                    G.FUNCS.draw_from_play_to_discard()
+                    return true
+                end)}))
+                end
+
+'''
+match_indent = true
+
+
+
+[[patches]]
+[patches.pattern]
+target = "functions/state_events.lua"
+pattern = '''
+local removed = false
+'''
+position = "after"
+payload = '''
+    local result = G.GAME.blind.config.blind.after_discard and G.GAME.blind.config.blind:after_discard(G.hand.highlighted[i])
+    if result then 
+        G.GAME.blind.triggered = true
+        removed = true 
+    end
+'''
+match_indent = true
+
+[[patches]]
+[patches.pattern]
+target = "functions/misc_functions.lua"
+pattern = '''
+G.deck:emplace(_card)
+'''
+position = "before"
+payload = '''
+if G.GAME.starting_params.flc_slatedeck then
+    if pseudorandom('flc_slatedeck4') < 0.2 then
+        	_card:set_ability(G.P_CENTERS['m_stone'], true)
+            _card:set_edition(nil, true)
+			local seal_type = pseudorandom(pseudoseed('flc_deck_slasealtype_cp'))
+			if seal_type > 0.25 then _card:set_seal('Red', true)
+			else _card:set_seal('Purple', true)
+            end
+    end
+end
+'''
+match_indent = true
+
+[[patches]]
+[patches.pattern]
+target = "card.lua"
+pattern = "(self.ability.set == 'Voucher' and {G.C.SECONDARY_SET.Voucher, G.C.CLEAR}) or "
+position = "after"
+payload = '''
+(self.ability.set == 'm_femtoLabsCollection_twilight' and {HEX('A591A6'), G.C.CLEAR}) or 
+'''
+match_indent = true
+
+[[patches]]
+[patches.pattern]
+target = "functions/button_callbacks.lua"
+pattern = 'G[select_to]:emplace(card)'
+position = 'before'
+match_indent = true
+payload = 'card:add_to_deck()'
+
+[[patches]]
+[patches.pattern]
+target = "game.lua"
+pattern = '''
+if G.GAME.chips - G.GAME.blind.chips >= 0 or G.GAME.current_round.hands_left < 1 then
+    G.STATE = G.STATES.NEW_ROUND
+else
+    G.STATE = G.STATES.DRAW_TO_HAND
+end
+'''
+position = 'after'
+match_indent = true
+payload = '''
+if next(SMODS.find_card('j_femtoLabsCollection_hostage')) then
+    if G.GAME.current_round.hands_left >= 1 then
+        G.STATE = G.STATES.DRAW_TO_HAND
+    end
+end
+'''
