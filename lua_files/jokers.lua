@@ -3,15 +3,15 @@
 local radioactive = SMODS.Joker({
 	name = "flc_Radioactive",
 	key = "flc_radioactive",
-    config = {extra = {prob_success = 4, mult = 4}},
+    config = {extra = {prob_success = 4, mult = 0, mult_mod = 2}},
 	pos = {x = 0, y = 0},
 	loc_txt = {
         name = 'Radioactivity',
         text = {
-	"When a played card scores,",
-	"{C:green}#1# in #2#{} chance to increase",
-    "its {C:attention}rank{} or change its {C:attention}suit{}",
-    "{C:mult}+#3#{} Mult per mutation"
+	"This Joker has a {C:green}#1# in #2#{} chance",
+	"to randomize a scored card's",
+    "{C:attention}rank{}, {C:attention}suit{} and gain {C:mult}+#4#{} Mult",
+    "{C:inactive}(Currently {C:mult}+#3#{C:inactive} Mult)"
         }
     },
 	rarity = 2,
@@ -23,68 +23,49 @@ local radioactive = SMODS.Joker({
 	atlas = "j_flc_jokers"
 })
 
+function radioactive.loc_vars(self, info_queue, card)
+	return {vars = {''..(G.GAME and G.GAME.probabilities.normal or 1), card.ability.extra.prob_success, card.ability.extra.mult, card.ability.extra.mult_mod}}
+end
+
 radioactive.calculate = function(self, card, context)
-    if context.individual then
-		if context.cardarea == G.play then
-            if pseudorandom('radioactive') < G.GAME.probabilities.normal/card.ability.extra.prob_success then
-                local other_card = context.other_card
-                return {
-                    card = context.other_card, message = "Mutated!", colour = G.C.GREEN, func = function()
-                        G.E_MANAGER:add_event(Event({
-                        trigger = 'before',
-                        delay = 0.0,
-                        func = (function()
-                            flc_doTheThing(self, card, other_card)
-                            return true
-                        end)}))
-                    end,
-                    extra = {mult = card.ability.extra.mult}
-                }
-            end
-        end
+    if context.individual and context.cardarea == G.play and pseudorandom('radioactive') < G.GAME.probabilities.normal/card.ability.extra.prob_success then
+        local other_card = context.other_card
+        card.ability.extra.mult = card.ability.extra.mult + card.ability.extra.mult_mod
+        return {
+            func = function()
+                G.E_MANAGER:add_event(Event({
+                trigger = 'before',
+                delay = 0.8,
+                func = (function()
+                    card_eval_status_text(other_card, 'extra', nil, nil, nil, {message = "Mutated!", colour = G.C.GREEN, instant = true})
+                    local _card = other_card
+                    local suit_prefix = string.sub(_card.base.suit, 1, 1)..'_'
+                
+                    local new_prefixes = {}
+                    for _, v in pairs(SMODS.Suits) do
+                        if v.card_key ~= suit_prefix then
+                            new_prefixes[#new_prefixes+1] = v.card_key
+                        end
+                    end
+                    local new_prefix = pseudorandom_element(new_prefixes, pseudoseed('radioactive_prefixes'))..'_'
+                
+                    local rank_suffix = pseudorandom_element(SMODS.Ranks, pseudoseed('radioactive_sufixes')).card_key
+                
+                    _card:set_base(G.P_CARDS[new_prefix..rank_suffix])
+                    card:juice_up()
+                    return true
+                end)}))
+            end,
+            extra = {message = localize('k_upgrade_ex'), colour = G.C.MULT, focus = card}
+        }
+    end
+    if context.joker_main then
+        return {
+            mult = card.ability.extra.mult
+        }
     end
 end
 
-function flc_doTheThing(self, card, other)
-    
-        local _card = other
-        if pseudorandom('radioactive_rank_or_suit') < 0.5 then
-            local suit_prefix = string.sub(_card.base.suit, 1, 1)..'_'
-            local rank_suffix = _card.base.id == 14 and 2 or math.min(_card.base.id+1, 14)
-            if rank_suffix < 10 then rank_suffix = tostring(rank_suffix)
-            elseif rank_suffix == 10 then rank_suffix = 'T'
-            elseif rank_suffix == 11 then rank_suffix = 'J'
-            elseif rank_suffix == 12 then rank_suffix = 'Q'
-            elseif rank_suffix == 13 then rank_suffix = 'K'
-            elseif rank_suffix == 14 then rank_suffix = 'A'
-            end
-            _card:set_base(G.P_CARDS[suit_prefix..rank_suffix])
-        else
-            local new_suit = pseudorandom('radioactive_set_suit') 
-            local new_prefixes = {'H', 'S', 'D', 'C'}
-            for i=1, #new_prefixes do
-                if string.sub(_card.base.suit, 1, 1) == new_prefixes[i] then
-                    table.remove(new_prefixes, i)
-                    break
-                end
-            end
-            local new_prefix = pseudorandom_element(new_prefixes, pseudoseed('radioactive_prefixes'))..'_'
-            local rank_suffix = _card.base.id
-            if rank_suffix < 10 then rank_suffix = tostring(rank_suffix)
-            elseif rank_suffix == 10 then rank_suffix = 'T'
-            elseif rank_suffix == 11 then rank_suffix = 'J'
-            elseif rank_suffix == 12 then rank_suffix = 'Q'
-            elseif rank_suffix == 13 then rank_suffix = 'K'
-            elseif rank_suffix == 14 then rank_suffix = 'A'
-            end
-            _card:set_base(G.P_CARDS[new_prefix..rank_suffix])
-        end
-        card:juice_up()
-end
-
-function radioactive.loc_vars(self, info_queue, card)
-	return {vars = {''..(G.GAME and G.GAME.probabilities.normal or 1), card.ability.extra.prob_success, card.ability.extra.mult}}
-end
 -------- end radioactivity --------
 
 -- medusa's gaze --
@@ -97,14 +78,13 @@ local medusas_gaze = SMODS.Joker({
 	loc_txt = { 
         name = 'Medusa\'s Gaze',
         text = {
-	"After a hand is played,",
-	"{C:attention}face cards{} held in hand",
-    "become {C:attention}Stone Cards{}",
-    "with a random {C:dark_edition}Edition{}"
+	"{C:attention}Face cards{} held in hand",
+    "become {C:attention}Stone Cards{} which",
+    "may have an {C:dark_edition}Edition{}"
         }
     },
 	rarity = 3,
-	cost = 11,
+	cost = 10,
 	discovered = true,
 	blueprint_compat = false,
 	eternal_compat = true,
@@ -202,9 +182,9 @@ function clown_car.calc_mult(card)
     local ranks = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
     local total = 0
 
-    if G.playing_cards and G.STAGE == G.STAGES.RUN then
+    if G.playing_cards and G.STAGE == G.STAGES.RUN and card then
         for v, k in ipairs(G.playing_cards) do
-            ranks[k.base and k.base.id-1] = ranks[k.base and k.base.id-1] + 1
+            ranks[k.base and k.base.id and k.base.id-1] = ranks[k.base and k.base.id and k.base.id-1] + 1
         end
 
         for i=1, #ranks do
@@ -311,10 +291,10 @@ local transmutation = SMODS.Joker({
 transmutation.in_pool = function(self, args)
     if G.deck and G.deck.cards then
         for j = 1, #G.deck.cards do
-            if G.deck.cards[j].ability.name == 'Stone Card' then
+            if G.deck.cards[j].config.center.key == 'm_stone' then
                 return true
             end
-            if G.deck.cards[j].ability.name == 'Steel Card' then
+            if G.deck.cards[j].config.center.key == 'm_steel' then
                 return true
             end
         end
@@ -325,7 +305,7 @@ transmutation.calculate = function(self, card, context)
     if context.individual and not context.blueprint then
 		if context.cardarea == G.play then
             local other_card = context.other_card
-            if context.other_card.ability.name == 'Stone Card' then
+            if SMODS.has_enhancement(context.other_card, 'm_stone') then
                 return {
                     extra = {focus = context.other_card, func = function()
                         G.E_MANAGER:add_event(Event({
@@ -340,7 +320,7 @@ transmutation.calculate = function(self, card, context)
                     end},
                     card = context.other_card
                 }
-            elseif context.other_card.ability.name == 'Steel Card' then
+            elseif SMODS.has_enhancement(context.other_card, 'm_steel') then
                 return {
                     extra = {focus = context.other_card,  func = function()
                         G.E_MANAGER:add_event(Event({
@@ -553,38 +533,37 @@ end
 local alloy = SMODS.Joker({
 	name = "flc_Alloy",
 	key = "alloy",
-    config = {extra = {xmult = 1.25, dollars = 1}},
+    config = {extra = 1.25},
 	pos = {x = 1, y = 1},
 	loc_txt = { 
-        name = 'Alloy',
+        name = 'Banded Iron Formation',
         text = {
-	"{C:attention}Steel Cards{} and {C:attention}Gold Cards",
-    "gain a weaker version of",
-    "eachother's {C:attention}main{} abilities",
-    "{C:inactive}({C:money}$#1#{s:0.85}{C:inactive}, {X:mult,C:white}X#2#{C:inactive} Mult respectively)",
-    "{C:inactive,s:0.8}Concept: ABuffZucchini"
+	"{C:attention}Stone Cards{} each give {X:mult,C:white}X#1#",
+    "when held in hand"
         }
     },
 	rarity = 2,
 	cost = 6,
 	discovered = true,
-	blueprint_compat = false,
+	blueprint_compat = true,
 	eternal_compat = true,
 	perishable_compat = true,
 	atlas = "j_flc_jokers"
 })
 
-function alloy.loc_vars(self, info_queue, card)
-	return {vars = {card.ability.extra.dollars, card.ability.extra.xmult}}
+alloy.loc_vars = function(self, info_queue, card)
+    info_queue[#info_queue+1] = G.P_CENTERS['m_wild']
+    return {
+        vars = {
+            card.ability.extra
+        }
+    }
 end
 
 alloy.in_pool = function(self, args)
     if G.deck and G.deck.cards then
         for j = 1, #G.deck.cards do
-            if G.deck.cards[j].ability.name == 'Gold Card' then
-                return true
-            end
-            if G.deck.cards[j].ability.name == 'Steel Card' then
+            if G.deck.cards[j].config.center.key == 'm_stone' then
                 return true
             end
         end
@@ -592,28 +571,10 @@ alloy.in_pool = function(self, args)
 end
 
 alloy.calculate = function(self, card, context)
-    if context.blueprint then return end
-    if context.cardarea == G.hand and context.individual then
-        if context.end_of_round then
-            if context.other_card.config.center == G.P_CENTERS.m_steel then
-                if not context.other_card.debuff then
-                    return {
-                        dollars = card.ability.extra.dollars,
-                        card = card
-                    }
-                end
-            end
-        else
-            if context.other_card.config.center == G.P_CENTERS.m_gold then
-                if not context.other_card.debuff then
-                    return {
-                        x_mult = card.ability.extra.xmult,
-                        card = card
-                    }
-                end
-        end
-
-    end
+    if context.individual and not context.end_of_round and context.cardarea == G.hand and SMODS.has_enhancement(context.other_card, 'm_stone') then
+        return {
+            xmult = card.ability.extra,
+        }
     end
 end
 
@@ -679,14 +640,14 @@ end
 local cascade = SMODS.Joker({
 	name = "flc_Cascade",
 	key = "cascade",
-    config = {},
+    config = {extra = 2},
 	pos = {x = 3, y = 1},
 	loc_txt = { 
         name = 'Cascade',
         text = {
 	"{C:attention}First played card{}", 
     "in the round lowers its ",
-    "{C:attention}rank{} by {C:attention}2{} before scoring",
+    "{C:attention}rank{} by {C:attention}#1#{} before scoring",
     "{C:inactive,s:0.8}Concept: ABuffZucchini"
         }
     },
@@ -698,6 +659,14 @@ local cascade = SMODS.Joker({
 	perishable_compat = true,
 	atlas = "j_flc_jokers"
 })
+
+cascade.loc_vars = function(self, card)
+    return {
+        vars = {
+            card.ability and card.ability.extra or 2
+        }
+    }
+end
 
 cascade.calculate = function(self, card, context)
     if context.cardarea == G.jokers and context.before and G.play.cards[1] and G.GAME.current_round.hands_played == 0 then
@@ -711,16 +680,7 @@ cascade.calculate = function(self, card, context)
                     card_eval_status_text(card, 'extra', nil, nil, nil, {message = 'Rank Down!', colour = G.C.GREEN, instant = true})
                 end
                 _card:juice_up()
-                local suit_prefix = string.sub(_card.base.suit, 1, 1)..'_'
-                local rank_suffix = _card.base.id == 2 and 13 or _card.base.id == 3 and 14 or math.max(_card.base.id-2, 2)
-                if rank_suffix < 10 then rank_suffix = tostring(rank_suffix)
-                elseif rank_suffix == 10 then rank_suffix = 'T'
-                elseif rank_suffix == 11 then rank_suffix = 'J'
-                elseif rank_suffix == 12 then rank_suffix = 'Q'
-                elseif rank_suffix == 13 then rank_suffix = 'K'
-                elseif rank_suffix == 14 then rank_suffix = 'A'
-                end
-                _card:set_base(G.P_CARDS[suit_prefix..rank_suffix])
+                assert(SMODS.modify_rank(_card, -card.ability.extra))
             end},
             card = G.play.cards[1]
         }
@@ -739,7 +699,7 @@ local laterality = SMODS.Joker({
 	loc_txt = { 
         name = 'Laterality',
         text = {
-	"{C:attention}Unscored cards in", 
+	"{C:attention}Unscored cards{} in", 
     "played hand permanently",
     "gain {C:chips}+#1#{} Chips"
         }
@@ -759,35 +719,13 @@ end
 
 laterality.calculate = function(self, card, context)
 
-    --[[if context.individual and context.cardarea == 'unscored' then
+    if context.individual and context.cardarea == 'unscored' then
         context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus or 0
         context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus + card.ability.extra
         return {
             message = localize('k_upgrade_ex'),
             colour = G.C.CHIPS
         }
-    end]]--
-
-    if context.individual and context.cardarea == G.play and context.other_card == context.scoring_hand[#context.scoring_hand] and #context.scoring_hand < #context.full_hand then
-        return {extra = {func = function()
-            for _, _card in ipairs(context.full_hand) do
-                for _, s in ipairs(context.scoring_hand) do
-                    if s == _card then goto continue end
-                end
-                if _card.debuff then goto continue end
-                local ctx = context
-                G.E_MANAGER:add_event(Event({func = function() 
-                    _card.ability.perma_bonus = _card.ability.perma_bonus or 0
-                    _card.ability.perma_bonus = _card.ability.perma_bonus + card.ability.extra
-                    _card:juice_up()
-                    local c = ctx.blueprint_card or card
-                    c:juice_up()
-                    card_eval_status_text(_card, 'extra', card.ability.extra, nil, nil, {message = localize('k_upgrade_ex'), colour = G.C.CHIPS, instant = true})
-                    return true end })) 
-                delay(0.8)
-                ::continue::
-            end
-        end}}
     end
 end
 
@@ -878,7 +816,7 @@ end
 rollingstones.in_pool = function(self, args)
     if G.deck and G.deck.cards then
         for j = 1, #G.deck.cards do
-            if SMODS.get_enhancements(G.deck.cards[j])['m_stone'] then
+            if G.deck.cards[j].config.center.key == 'm_stone' then
                 return true
             end
         end
@@ -960,13 +898,13 @@ unfolding.calculate = function(self, card, context)
             end
         end
         return {
-        extra = {focus = card, func = function()
+        extra = {focus = context.blueprint and context.blueprint_card or card, func = function()
             G.E_MANAGER:add_event(Event({
                 trigger = 'before',
                 delay = 0.8,
                 func = (function()
                     if found_it then
-                        card_eval_status_text(context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 Discard", colour = G.C.RED, instant = true})
+                        card_eval_status_text(context.blueprint and context.blueprint_card or card, 'extra', nil, nil, nil, {message = "+1 Discard", colour = G.C.RED, instant = true})
                         ease_discard(card.ability.extra.discards)
                     end
                     local suitpool = {'Spades','Hearts','Clubs','Diamonds'}
@@ -1127,7 +1065,43 @@ gooseberry.calculate = function(self, card, context)
             })) 
 
             return {
-                message = localize('k_eaten_ex')
+                message = localize('k_eaten_ex'),
+                func = function()
+                    local berries = SMODS.find_card('j_femtoLabsCollection_zucchini')
+                    for i=1, #berries do
+
+                        local ed = berries[i].edition
+                        berries[i].T.r = -0.2
+                        berries[i]:juice_up(0.3, 0.4)
+                        berries[i].states.drag.is = true
+                        berries[i].children.center.pinch.x = true
+                        G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4, blockable = false,
+                            func = function()
+                                    G.jokers:remove_card(berries[i])
+                                    berries[i]:remove()
+                                    berries[i] = nil
+                                return true; end})) 
+
+
+                        delay(0.4)
+
+                        G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4, blockable = false,
+                        func = function()
+                            play_sound('tarot1', 0.1)
+                            local new_card = SMODS.create_card({
+                                key = 'j_femtoLabsCollection_scraggly',
+                                area = G.jokers,
+                                edition = ed
+                            })
+                            new_card:juice_up()
+                            card_eval_status_text(new_card, 'extra', nil, nil, nil, {message = 'Hello! I am Scraggly1.', colour = G.C.FILTER, instant = true, delay = 1.5})
+                            G.jokers:emplace(new_card)
+                            return true; end})) 
+
+
+                    end
+                    return true
+                end
             }
         else
             return {
@@ -1679,7 +1653,7 @@ local drill = SMODS.Joker({
 drill.in_pool = function(self, args)
     if G.deck and G.deck.cards then
         for j = 1, #G.deck.cards do
-            if SMODS.get_enhancements(G.deck.cards[j])['m_stone'] then
+            if G.deck.cards[j].config.center.key == 'm_stone' then
                 return true
             end
         end
@@ -1778,7 +1752,7 @@ flc_kanban_task_table_desc = {
     add_card = 'add a playing card', --done
     destroy_card = 'destroy playing cards', --done
     enhance = 'enhance a card', --done
-    seal = 'add a Seal to a card',
+    seal = 'add a Seal to a card', --done
     sell_consumable = 'sell a consumable card', --done
     contain_pair = 'play a hand containing a Pair', --done
     contain_flush = 'play a hand containing a Flush', --done
@@ -1803,7 +1777,7 @@ end
 
 local kanban = SMODS.Joker({
 	key = "kanban",
-    config = {extra = {xmult = 1, xmult_mod = 0.25, xmult_reduction = 0.1, task_do = 'booster', task_dont = 'discard'}},
+    config = {extra = {xmult = 1, xmult_mod = 0.25, xmult_reduction = 0.2, task_do = 'booster', task_dont = 'discard'}},
 	pos = {x = 3, y = 3},
 	loc_txt = { 
         name = 'Kanban Board',
@@ -1973,19 +1947,37 @@ kanban.calculate = function(self, card, context) -- i'm scared.
     if context.remove_playing_cards then
         if card.ability.extra.task_do == 'destroy_card' then
             extra = extra + card.ability.extra.xmult_mod
-
-            if prev == card.ability.extra.xmult or extra == 0 then return end
         end
         if card.ability.extra.task_dont == 'destroy_card' then
             extra = extra - card.ability.extra.xmult_reduction
-
-            if prev == card.ability.extra.xmult or extra == 0 then return end
         end
         card.ability.extra.xmult = math.max(1, card.ability.extra.xmult + extra)
-
-        return {
-            message = localize{type='variable',key='a_xmult',vars={card.ability.extra.xmult}}
-        }
+        if prev == card.ability.extra.xmult or extra == 0 then return end
+        G.E_MANAGER:add_event(Event({
+            func = function()
+                G.E_MANAGER:add_event(Event({
+                    func = function()
+                        return true
+                    end
+                    }))
+                    card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize{type = 'variable', key = 'a_xmult', vars = {card.ability.extra.xmult}}})
+                return true
+            end
+         }))
+        return
+    elseif context.cards_destroyed then
+        if card.ability.extra.task_do == 'destroy_card' then
+            extra = extra + card.ability.extra.xmult_mod
+        end
+        if card.ability.extra.task_dont == 'destroy_card' then
+            extra = extra - card.ability.extra.xmult_reduction
+        end
+        card.ability.extra.xmult = math.max(1, card.ability.extra.xmult + extra)
+        if prev == card.ability.extra.xmult or extra == 0 then return end
+        G.E_MANAGER:add_event(Event({
+            func = function() card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize{type = 'variable', key = 'a_xmult', vars = {self.ability.caino_xmult}}}); return true
+            end}))
+        return
     end
 
     if context.selling_card then
@@ -2241,13 +2233,17 @@ local blindfold = SMODS.Joker({
 	atlas = "j_flc_jokers"
 })
 
-blindfold .loc_vars = function(self, info_queue, card)
+blindfold.loc_vars = function(self, info_queue, card)
     return {
         vars = {
             card.ability.extra.chip_mod,
             card.ability.extra.chips
         }
     }
+end
+
+blindfold.set_ability = function(self, card)
+    card.ability.extra.chip_mod = (G.GAME.modifiers.ccc_bside and G.GAME.modifiers.ccc_bside >= 2) and 30 or 60
 end
 
 blindfold.calculate = function(self, card, context)
@@ -2270,11 +2266,23 @@ end
 local set_blindRef = G.FUNCS.select_blind
 G.FUNCS.select_blind = function(e)
     if e.config.ref_table.boss then
-        for i=1, #G.jokers.cards do
-            if G.jokers.cards[i].config.center.key == 'j_femtoLabsCollection_blindfold' then
+        if G.GAME.modifiers.ccc_bside and G.GAME.modifiers.ccc_bside >= 2 then -- CCC b-side deck + b-side decksleeve has partnered boss blinds, randomize both
+            local blindfolded = SMODS.find_card('j_femtoLabsCollection_blindfold')
+            for i=1, #blindfolded do
+                e.config.ref_table = G.P_BLINDS[get_new_boss()]
+                e.config.ccc_bonus_ref_table = G.P_BLINDS[get_new_boss()]
+                local name = e.config.ref_table.loc_txt and e.config.ref_table.loc_txt.default.name or e.config.ref_table.name
+                local name2 = e.config.ccc_bonus_ref_table.loc_txt and e.config.ccc_bonus_ref_table.loc_txt.default.name or e.config.ccc_bonus_ref_table.name
+                card_eval_status_text(blindfolded[i], 'extra', nil, nil, nil, {message = name2..' & '..name..' Jumpscare!', colour = G.C.FILTER, delay = 1.5})
+                break
+            end
+        else
+        local blindfolded = SMODS.find_card('j_femtoLabsCollection_blindfold')
+            for i=1, #blindfolded do
                 e.config.ref_table = G.P_BLINDS[get_new_boss()]
                 local name = e.config.ref_table.loc_txt and e.config.ref_table.loc_txt.default.name or e.config.ref_table.name
-                card_eval_status_text(G.jokers.cards[i], 'extra', nil, nil, nil, {message = name..' Jumpscare!', colour = G.C.FILTER})
+                card_eval_status_text(blindfolded[i], 'extra', nil, nil, nil, {message = name..' Jumpscare!', colour = G.C.FILTER, delay = 1.5})
+                break
             end
         end
     end
@@ -2306,6 +2314,7 @@ local frostbite = SMODS.Joker({
 })
 
 frostbite.loc_vars = function(self, info_queue, card)
+    info_queue[#info_queue+1] = G.P_CENTERS['m_femtoLabsCollection_ice_card']
     return {
         vars = {
             localize{type = 'name_text', set = 'Enhanced', key = 'm_femtoLabsCollection_ice_card'},
@@ -2365,7 +2374,7 @@ local frigid = SMODS.Joker({
 frigid.in_pool = function(self, args)
     if G.deck and G.deck.cards then
         for j = 1, #G.deck.cards do
-            if SMODS.get_enhancements(G.deck.cards[j])['m_femtoLabsCollection_ice_card'] then
+            if G.deck.cards[j].config.center.key == 'm_femtoLabsCollection_ice_card' then
                 return true
             end
         end
@@ -2374,6 +2383,7 @@ end
 
 frigid.loc_vars = function(self, info_queue, card)
     local ice_tally = 0
+    info_queue[#info_queue+1] = G.P_CENTERS['m_femtoLabsCollection_ice_card']
     if G.playing_cards then
         for k, v in pairs(G.playing_cards) do
             if SMODS.get_enhancements(v, false)['m_femtoLabsCollection_ice_card'] then ice_tally = ice_tally+1 end
@@ -2467,48 +2477,68 @@ end
 
 local splatter = SMODS.Joker({
 	key = "splatter",
-    config = {extra = {chips = 5, mult = 2}},
+    config = {extra = {mult_bonus = 2, chip_bonus = 5}},
 	pos = {x = 1, y = 4},
 	loc_txt = { 
         name = 'Paint Splatter',
         text = {
-	"{C:attention}Wild Cards{} permanently",
-    "gain {C:mult}+#1#{} Mult and {C:chips}+#2#",
-    "chips when held in hand"
+	"{C:attention}Wild Cards{} permanently gain a",
+    "{C:chips}+#1#{} Chip and {C:mult}+#2#{} Mult bonus",
+    "when scored for each",
+    "{C:attention}Wild Card{} held in hand"
         }
     },
 	rarity = 3,
 	cost = 8,
 	discovered = true,
-	blueprint_compat = true,
+	blueprint_compat = false,
 	eternal_compat = true,
 	perishable_compat = true,
 	atlas = "j_flc_jokers"
 })
 
+splatter.in_pool = function(self, args)
+    if G.deck and G.deck.cards then
+        for j = 1, #G.deck.cards do
+            if G.deck.cards[j].config.center.key == 'm_wild' then
+                return true
+            end
+        end
+    end
+end
+
 splatter.loc_vars = function(self, info_queue, card)
     info_queue[#info_queue+1] = G.P_CENTERS['m_wild']
     return {
         vars = {
-            card.ability.extra.mult,
-            card.ability.extra.chips
+            card.ability.extra.chip_bonus,
+            card.ability.extra.mult_bonus, 
         }
     }
 end
 
 splatter.calculate = function(self, card, context)
-    if context.individual and context.cardarea == G.hand and not context.end_of_round then
-        if SMODS.get_enhancements(context.other_card)['m_wild'] then
-            context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus or 0
-            context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus + card.ability.extra.chips
-            context.other_card.ability.perma_mult = context.other_card.ability.perma_mult or 0
-            context.other_card.ability.perma_mult = context.other_card.ability.perma_mult + card.ability.extra.mult
-            return {
-                extra = {message = localize('k_upgrade_ex'), colour = G.C.FILTER},
-                colour = G.C.FILTER,
-                card = card
-            }
+    if context.individual and context.cardarea == G.play and SMODS.has_enhancement(context.other_card, 'm_wild') then
+
+        local times = 0
+        for _, _card in pairs(G.hand.cards) do
+            if SMODS.has_enhancement(_card, 'm_wild') then
+                times = times + 1
+            end
         end
+
+        if times <= 0 then return end
+
+        context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus or 0
+        context.other_card.ability.perma_bonus = context.other_card.ability.perma_bonus + (card.ability.extra.chip_bonus * times)
+        context.other_card.ability.perma_mult = context.other_card.ability.perma_mult or 0
+        context.other_card.ability.perma_mult = context.other_card.ability.perma_mult + (card.ability.extra.mult_bonus * times)
+
+        return {
+            message = localize('k_upgrade_ex'),
+            colour = G.C.FILTER,
+            focus = context.other_card
+        }
     end
 end
 
@@ -2608,6 +2638,16 @@ elephant.loc_vars = function(self, info_queue, card)
     info_queue[#info_queue+1] = G.P_CENTERS['m_femtoLabsCollection_ivory_card']
 end
 
+elephant.in_pool = function(self, args)
+    if G.deck and G.deck.cards then
+        for j = 1, #G.deck.cards do
+            if G.deck.cards[j].config.center.key == 'm_femtoLabsCollection_ivory_card' then
+                return true
+            end
+        end
+    end
+end
+
 
 elephant.calculate = function(self, card, context)
     if context.repetition and context.cardarea == G.play and context.other_card == context.scoring_hand[#context.scoring_hand] then
@@ -2648,6 +2688,16 @@ local amulet = SMODS.Joker({
 	atlas = "j_flc_jokers"
 })
 
+amulet.in_pool = function(self, args)
+    if G.deck and G.deck.cards then
+        for j = 1, #G.deck.cards do
+            if G.deck.cards[j].config.center.key == 'm_femtoLabsCollection_ivory_card' then
+                return true
+            end
+        end
+    end
+end
+
 amulet.loc_vars = function(self, info_queue, card)
     info_queue[#info_queue+1] = G.P_CENTERS['m_femtoLabsCollection_ivory_card']
 end
@@ -2665,7 +2715,7 @@ end
 
 local curtains = SMODS.Joker({
 	key = "curtains",
-    config = {extra = {prob_success = 6}},
+    config = {extra = {prob_success = 6, first_card_evaluated = true}},
 	pos = {x = 0, y = 5},
 	loc_txt = { 
         name = 'Magic Curtains',
@@ -2691,22 +2741,25 @@ end
 
 curtains.calculate = function(self, card, context)
     if context.blueprint then return end
+    if context.setting_blind then card.ability.first_card_evaluated = true end
     if context.end_of_round and context.individual and context.cardarea == G.hand then
         if context.other_card.facing == 'back' then
             local other_card = context.other_card
             context.other_card:set_ability(pseudorandom_element(G.P_CENTER_POOLS.Enhanced, pseudoseed('flc_curtains')).key, true, false)
             context.other_card:flip()
-        end
-    end
-    if context.end_of_round and context.cardarea == G.jokers then
-        return {
-            message = 'Ta-da!',
-            colour = G.C.FILTER,
-            card = card,
-            func = function()
-                delay(0.9)
+            if card.ability.first_card_evaluated then
+                card.ability.first_card_evaluated = false
+                return {
+                    message = 'Ta-da!',
+                    colour = G.C.FILTER,
+                    focus = card,
+                    func = function()
+                        delay(0.9)
+                    end
+                }
             end
-        }
+        end
+
     end
 end
 
@@ -2771,34 +2824,23 @@ dawn.calculate = function(self, card, context)
         card.ability.extra.lastchips = 0
     end
     if context.after and context.cardarea == G.jokers then
-        return {
-            func = function()
-                G.E_MANAGER:add_event(Event({
-                    trigger = 'after',
-                    delay = 0.0,
-                    func = (function()
-                        if ((G.GAME.chips - card.ability.extra.lastchips) >= (G.GAME.blind.chips * card.ability.extra.min)) and ((G.GAME.chips - card.ability.extra.lastchips) <= (G.GAME.blind.chips * card.ability.extra.max)) and (G.consumeables.config.card_limit - #G.consumeables.cards) > 0 then
-                            G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
-                            G.E_MANAGER:add_event(Event({
-                                trigger = 'before',
-                                delay = 0.4,
-                                func = (function()
-                                        card_eval_status_text(card, 'extra', nil, nil, nil, {message = '+1 Twilight', colour = flc_twilight_colour, instant = true})
-                                        local card = SMODS.create_card({
-                                            set = 'm_femtoLabsCollection_twilight',
-                                            key_append = 'flc_dawn'
-                                        })
-                                        card:add_to_deck()
-                                        G.consumeables:emplace(card)
-                                        G.GAME.consumeable_buffer = 0
-                                    return true
-                                end)}))
-                        end
-                        card.ability.extra.lastchips = G.GAME.chips
-                        return true
-                    end)}))
-            end
-        }
+        G.E_MANAGER:add_event(Event({
+            trigger = 'after',
+            delay = 0.4,
+            func = (function()
+                if ((G.GAME.chips - card.ability.extra.lastchips) >= (G.GAME.blind.chips * card.ability.extra.min)) and ((G.GAME.chips - card.ability.extra.lastchips) <= (G.GAME.blind.chips * card.ability.extra.max)) and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
+                    G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
+                    card_eval_status_text(card, 'extra', nil, nil, nil, {message = '+1 Twilight', colour = flc_twilight_colour, instant = true})
+                    local _card = SMODS.create_card({
+                            set = 'm_femtoLabsCollection_twilight',
+                            key_append = 'flc_dawn'
+                    })
+                    _card:add_to_deck()
+                    G.consumeables:emplace(_card)
+                    G.GAME.consumeable_buffer = 0
+                end
+                card.ability.extra.lastchips = G.GAME.chips
+            return true end)}))
     end
 end
 
@@ -2877,7 +2919,43 @@ zucchini.calculate = function(self, card, context)
             })) 
     
             return {
-                message = localize('k_eaten_ex')
+                message = localize('k_eaten_ex'),
+                func = function()
+                    local berries = SMODS.find_card('j_femtoLabsCollection_gooseberry')
+                    for i=1, #berries do
+
+                        local ed = berries[i].edition
+                        berries[i].T.r = -0.2
+                        berries[i]:juice_up(0.3, 0.4)
+                        berries[i].states.drag.is = true
+                        berries[i].children.center.pinch.x = true
+                        G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4, blockable = false,
+                            func = function()
+                                    G.jokers:remove_card(berries[i])
+                                    berries[i]:remove()
+                                    berries[i] = nil
+                                return true; end})) 
+
+
+                        delay(0.4)
+
+                        G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4, blockable = false,
+                        func = function()
+                            play_sound('tarot1', 0.1)
+                            local new_card = SMODS.create_card({
+                                key = 'j_femtoLabsCollection_scraggly',
+                                area = G.jokers,
+                                edition = ed
+                            })
+                            new_card:juice_up()
+                            card_eval_status_text(new_card, 'extra', nil, nil, nil, {message = 'Hello! I am Scraggly1.', colour = G.C.FILTER, instant = true, delay = 1.5})
+                            G.jokers:emplace(new_card)
+                            return true; end})) 
+
+
+                    end
+                    return true
+                end
             }
         else
             return {
@@ -2918,7 +2996,316 @@ end
 hostage.calculate = function(self, card, context)
 end
 
+hostage.remove_from_deck = function(self, card, from_debuff) 
+    if G.STATE ~= G.STATES.SELECTING_HAND then return end
+    G.STATE_COMPLETE = true
+    G.E_MANAGER:add_event(Event({
+        trigger = 'immediate',
+        func = function()
+    if G.GAME.chips - G.GAME.blind.chips >= 0 or G.GAME.current_round.hands_left < 1 then
+        G.STATE = G.STATES.NEW_ROUND
+    end
+    G.STATE_COMPLETE = false
+    return true
+    end
+    }))
+end
+
 -------- end hostage joker --------
+
+-- chocolate pennies -- 
+
+local chocopenny = SMODS.Joker({
+	key = "chocopenny",
+    config = {extra = {dollars = 1, hands_left = 4}},
+	pos = {x = 4, y = 5},
+	loc_txt = { 
+        name = 'Chocolate Pennies',
+        text = {
+	"Scored cards {C:attention}permanently{} gain",
+    "a {C:money}$#1#{} bonus when scored",
+    "Eaten in {C:attention}#2#{} hand#3#",
+    "{C:inactive,s:0.8}Art: ABuffZucchini"
+        }
+    },
+	rarity = 2,
+	cost = 6,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = false,
+	perishable_compat = false,
+	atlas = "j_flc_jokers"
+})
+
+chocopenny.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+            card.ability.extra.dollars,
+            card.ability.extra.hands_left,
+            card.ability.extra.hands_left == 1 and '' or 's'
+        }
+    }
+end
+
+chocopenny.calculate = function(self, card, context)
+
+    if context.individual and context.cardarea == G.play then
+        context.other_card.ability.perma_p_dollars = context.other_card.ability.perma_p_dollars or 0
+        context.other_card.ability.perma_p_dollars = context.other_card.ability.perma_p_dollars + card.ability.extra.dollars
+        return {
+            message = localize('k_upgrade_ex'), 
+            colour = G.C.MONEY,
+            card = card,
+            focus = context.other_card,
+        }
+    end 
+
+    if context.after and context.cardarea == G.jokers and not context.blueprint then
+
+        card.ability.extra.hands_left = card.ability.extra.hands_left - 1
+
+        if card.ability.extra.hands_left <= 0 then
+
+            G.E_MANAGER:add_event(Event({
+                func = function()
+                    play_sound('tarot1')
+                    card.T.r = -0.2
+                    card:juice_up(0.3, 0.4)
+                    card.states.drag.is = true
+                    card.children.center.pinch.x = true
+                    G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.3, blockable = false,
+                        func = function()
+                                G.jokers:remove_card(card)
+                                card:remove()
+                                card = nil
+                            return true; end})) 
+                    return true
+                end
+            })) 
+
+            return {
+                message = localize('k_eaten_ex')
+            }
+        else
+            return {
+                message = '-1',
+                colour = G.C.ETERNAL -- why the hell not
+            }
+        end
+    end
+end
+
+-------- end chocolate pennies --------
+
+-- apotheosis -- 
+
+local apotheosis = SMODS.Joker({
+	key = "apotheosis",
+    config = {extra = {chips = 0, chip_mod = 6}},
+	pos = {x = 5, y = 5},
+	loc_txt = { 
+        name = 'Apotheosis',
+        text = {
+	"This Joker gains {C:chips}+#1#{} Chips for",
+    "every {C:attention}unscored{} card in",
+    "the {C:attention}first{} hand of round",
+    "{C:inactive}(Currently {C:chips}+#2#{C:inactive} Chips)"
+        }
+    },
+	rarity = 2,
+	cost = 6,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = true,
+	perishable_compat = true,
+	atlas = "j_flc_jokers"
+})
+
+apotheosis.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+            card.ability.extra.chip_mod,
+            card.ability.extra.chips,
+        }
+    }
+end
+
+apotheosis.calculate = function(self, card, context)
+    if G.GAME.current_round.hands_played == 0 and context.individual and context.cardarea == 'unscored' and not context.blueprint then
+        card.ability.extra.chips = card.ability.extra.chips + card.ability.extra.chip_mod
+        return {
+            message = localize('k_upgrade_ex'),
+            colour = G.C.CHIPS,
+            focus = card
+        }
+    end
+
+    if context.joker_main then
+        return {
+            chips = card.ability.extra.chips
+        }
+    end
+end
+
+-------- end apotheosis --------
+
+-- lamppost -- 
+
+local lamppost = SMODS.Joker({
+	key = "lamppost",
+    config = {},
+	pos = {x = 0, y = 6},
+	loc_txt = { 
+        name = 'Lamppost',
+        text = {
+	"All {C:attention}Booster Packs{} contain",
+    "an additional {V:1}Twilight Card{}",
+    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+        }
+    },
+	rarity = 3,
+	cost = 8,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = true,
+	perishable_compat = true,
+	atlas = "j_flc_jokers"
+})
+
+lamppost.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+            colours = {
+                flc_twilight_colour
+            }
+        }
+    }
+end
+
+lamppost.calculate = function(self, card, context)
+    if context.open_booster then
+        G.E_MANAGER:add_event(Event({
+            trigger = 'before',
+            delay = 0.0,
+            func = (function()
+                    local _card = SMODS.create_card({set = "m_femtoLabsCollection_twilight", area = G.pack_cards, key_append = "m_flc_lappost", soulable = true, no_edition = true, skip_materialize = true, edition = nil})
+                    _card.T.x = context.card.T.x
+                    _card.T.y = context.card.T.y
+                    _card:start_materialize({G.C.WHITE, G.C.WHITE}, nil, 1.5*G.SETTINGS.GAMESPEED)
+                    G.pack_cards[#G.pack_cards+1] = _card
+                    G.pack_cards:emplace(_card)
+                return true
+            end)}))
+        card_eval_status_text(card, 'extra', nil, nil, nil, {message = "+1 Twilight", colour = flc_twilight_colour})
+    end
+end
+
+-------- end lamppost --------
+
+-- dancer -- 
+
+local dancer = SMODS.Joker({
+	key = "dancer",
+    config = {extra = {dollars = 20, active = false}},
+	pos = {x = 6, y = 5},
+	loc_txt = { 
+        name = 'Dancer',
+        text = {
+	"If the {C:attention}first hand{} of {C:attention}Ante",
+    "is a hand that hasn't",
+    "been played yet, gain {C:money}$#1#{}",
+    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+        }
+    },
+	rarity = 1,
+	cost = 4,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = true,
+	perishable_compat = true,
+	atlas = "j_flc_jokers"
+})
+
+dancer.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+            card.ability.extra.dollars
+        }
+    }
+end
+
+dancer.calculate = function(self, card, context)
+    if context.before and context.cardarea == G.jokers and G.GAME.hands[context.scoring_name].played <= 1 and card.ability.extra.active then
+        card.ability.extra.active = false
+        return {
+            dollars = card.ability.extra.dollars
+        }
+    end
+    if context.end_of_round and G.GAME.blind.boss then
+        card.ability.extra.active = true
+    end
+end
+
+-------- end dancer --------
+
+-- snooze -- 
+
+local snooze = SMODS.Joker({
+	key = "snooze",
+    config = {},
+	pos = {x = 1, y = 6},
+	loc_txt = { 
+        name = 'Snooze',
+        text = {
+	"If {C:attention}Blind{} is defeated with",
+    "{C:attention}0 {C:blue}hands{} remaining, create",
+    "a {V:1}Twilight{} or {C:spectral}Spectral{} card",
+    "{C:inactive}(Must have room)",
+    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+        }
+    },
+	rarity = 3,
+	cost = 4,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = true,
+	perishable_compat = true,
+	atlas = "j_flc_jokers"
+})
+
+snooze.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+            colours = {
+                flc_twilight_colour
+            }
+        }
+    }
+end
+
+snooze.calculate = function(self, card, context)
+    if context.end_of_round and context.main_eval and G.GAME.current_round.hands_left < 1 and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
+        G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
+        local which = pseudorandom('flc_snooze_which_one') < 0.5
+        G.E_MANAGER:add_event(Event({
+            trigger = 'before',
+            delay = 0.0,
+            func = (function()
+                    local _card = SMODS.create_card({
+                        set = which and "m_femtoLabsCollection_twilight" or "Spectral",
+                        area = G.consumeables,
+                        key_append = "flc_snoze"
+                    })
+                    _card:add_to_deck()
+                    G.consumeables:emplace(_card)
+                    G.GAME.consumeable_buffer = 0
+                return true
+            end)}))
+        card_eval_status_text(card, 'extra', nil, nil, nil, {message = which and "+1 Twilight" or localize('k_plus_spectral'), colour = which and flc_twilight_colour or G.C.SECONDARY_SET.Spectral})
+    end
+end
+
+-------- end dancer --------
 
 -- scraggly -- 
 
@@ -2930,13 +3317,20 @@ local scraglerarity = SMODS.Rarity({
     badge_colour = HEX('A06864'),
 })
 
-scraglerarity.gradient = function(self, dt)
-    self.badge_colour[1] = 0.5+0.4*(1- math.sin(G.TIMERS.REAL*5.9))
-end
+SMODS.Gradient({
+    key = "scragle_rarity_gradient",
+    colours = {
+        HEX('000000'),
+        HEX('FFFFFF'),
+    },
+    update = function(self, dt)
+        scraglerarity.badge_colour[1] = 0.5+0.4*(1- math.sin(G.TIMERS.REAL*5.9))
+    end
+})
 
 local scraggly = SMODS.Joker({
 	key = "scraggly",
-    config = {},
+    config = {extra = false},
 	pos = {x = 2, y = 4},
     soul_pos = {x = 3, y = 4},
     display_size = {w = 142, h = 95},
@@ -2954,10 +3348,82 @@ local scraggly = SMODS.Joker({
 	perishable_compat = true,
 	atlas = "j_flc_jokers"
 })
-
-scraggly.calculate = function(self, card, context)
+femtoLabsCollection.clean_center_keys = nil
+femtoLabsCollection.get_clean_centers_table_or_create = function()
+    if femtoLabsCollection.clean_center_keys then return femtoLabsCollection.clean_center_keys end
+    femtoLabsCollection.clean_center_keys = {}
+    for _, center in pairs(G.P_CENTERS) do
+        if (not G.P_CENTERS[center.key].set or (G.P_CENTERS[center.key].set and G.P_CENTERS[center.key].set ~= 'Edition'))
+        then
+            femtoLabsCollection.clean_center_keys[#femtoLabsCollection.clean_center_keys+1] = center.key
+        end
+    end
+    return femtoLabsCollection.clean_center_keys
 end
 
+scraggly.calculate = function(self, card, context)
+    if context.blurprint or context.check_enhancement then return end
+    if context.reroll_shop then
+        local other_shop_card = SMODS.create_card({
+            key = pseudorandom_element(femtoLabsCollection.get_clean_centers_table_or_create(), pseudoseed('flc_scraggly')),
+            key_append = "flc_scragle",
+            area = G.shop_jokers
+        })
+        create_shop_card_ui(other_shop_card, other_shop_card.ability.set, G.shop_jokers)
+        if other_shop_card.ability.set == 'Booster' then
+            other_shop_card.T.h = G.CARD_H*1.27
+            other_shop_card.T.w = G.CARD_W*1.27
+        end
+        G.shop_jokers:emplace(other_shop_card)
+        other_shop_card:juice_up()
+        return {
+            message = 'Hello!'
+        }
+    end
 
+    if context.setting_blind then
+        return {
+            message = '+Card!',
+            func = function()
+                local _area = (pseudorandom('flc_scraglly_pluscard') < 0.5) and G.jokers or G.consumeables
+                local card = SMODS.create_card({
+                    set = 'Enhanced',
+                    area = _area,
+                    skip_materialize = true,
+                    key_append = 'flc_scraglly_pluscard',
+                    edition = poll_edition('flc__scraglly_pluscard', nil, false, true),
+                    seal = pseudorandom_element(G.P_SEALS, pseudoseed('flc__scraglly_pluscard')).key
+                })
+                card:start_materialize()
+                _area:emplace(card)
+                card.ability.extra_value = (card.ability.extra_value or 0) + 10
+                card:set_cost()
+                create_shop_card_ui(card, card.ability.set, _area)
+            end
+        }
+    end
+
+    if pseudorandom('Hello! I am Scraggly1.') < 1/150 and not context.ignore_debuff then
+        return {
+            dollars = 2
+        }
+    end
+end
+
+scraggly.update = function(self, card, dt)
+    if card.shop_ui_created or (not G.jokers) then return end
+    for k, v in ipairs(G.jokers.cards) do
+        if v.ability.set == 'Enhanced' or v.ability.set == 'Base' then
+            create_shop_card_ui(v)
+            card.shop_ui_created = true
+        end
+    end
+    for k, v in ipairs(G.consumeables.cards) do
+        if v.ability.set == 'Enhanced' or v.ability.set == 'Base' then
+            create_shop_card_ui(v)
+            card.shop_ui_created = true
+        end
+    end
+end
 
 -------- end scraggly --------

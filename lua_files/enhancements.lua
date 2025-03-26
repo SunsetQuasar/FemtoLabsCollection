@@ -25,6 +25,8 @@ function eval_card(card, context)
 
         local scoring = context.cardarea == G.play and context.scoring_hand or context.cardarea.cards
         
+        if not scoring then return ret, post end
+
         for i = 2, #scoring do
             if scoring[i] == card then other_card = scoring[i-1] end
         end
@@ -172,6 +174,8 @@ Card.set_ability = function(self, center, initial, delay_sprites)
     local enh = self.config.center.key
 
     set_abilityRef(self, center, initial, delay_sprites)
+
+    if delay_sprites == 'quantum' then return end
 
     if center.key ~= enh and center.key ~= 'c_base' and self.seal == "femtoLabsCollection_bronze_seal" and (#G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit) then
         for i = 1, math.min(1, G.consumeables.config.card_limit - #G.consumeables.cards) do

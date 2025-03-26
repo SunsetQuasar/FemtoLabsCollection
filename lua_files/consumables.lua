@@ -25,25 +25,27 @@ Card.init = function(self, X, Y, W, H, card, center, params)
     if self.ability.set == 'Booster' then
 
         local extra_choices = 0
-        if G.jokers and G.jokers.cards then
-            for i=1, #G.jokers.cards do
-                if G.jokers.cards[i].config.center.key == 'j_femtoLabsCollection_gooseberry' and G.jokers.cards[i].ability then
-                    extra_choices = G.jokers.cards[i].ability.extra.choices
-                end
-            end
-        end        
+        local goobers = SMODS.find_card('j_femtoLabsCollection_gooseberry')
+        for i=1, #goobers do
+            extra_choices = goobers[i].ability.extra.choices
+        end   
         if G.GAME.starting_params.flc_gradientdeck then
             self.ability.extra = self.ability.extra + 1
         end
 		self.ability.choose = math.min(self.ability.choose + extra_choices, self.ability.extra)
     end
 end
---[[
+
 local openRef = Card.open
 Card.open = function(self)
+    local scrags = SMODS.find_card('j_femtoLabsCollection_scraggly')
+    for _, v in pairs(scrags) do
+        self.ability.extra = math.ceil(pseudorandom('flc_scraggly_booster') * 10);
+        self.ability.choose = math.min(math.ceil(pseudorandom('flc_scraggly_booster') * 10), self.ability.extra)
+        card_eval_status_text(v, 'extra', nil, nil, nil, {message = 'Hello!', colour = G.C.FILTER, instant = true})
+    end
     openRef(self)
 end
-]]--
 
 function ease_bg_nightfall()
     ease_background_colour{new_colour = HEX('895F52'), special_colour = darken(G.C.BLACK, 0.6), tertiary_colour = HEX('513B4C'), contrast = 2}
@@ -86,7 +88,7 @@ local std1 = SMODS.Booster({
             "{C:inactive}(Must have room)",
         }
     },
-    config = { extra = 3, choose = 1 },
+    config = { extra = 2, choose = 1 },
     atlas = "p_flc_twilight",
     pos = { x = 0, y = 0 },
     discovered = true,
@@ -136,7 +138,7 @@ local std2 = SMODS.Booster({
             "{C:inactive}(Must have room)",
         }
     },
-    config = { extra = 3, choose = 1 },
+    config = { extra = 2, choose = 1 },
     atlas = "p_flc_twilight",
     pos = { x = 1, y = 0 },
     discovered = true,
@@ -186,7 +188,7 @@ local jumbo = SMODS.Booster({
             "{C:inactive}(Must have room)",
         }
     },
-    config = { extra = 5, choose = 1 },
+    config = { extra = 4, choose = 1 },
     atlas = "p_flc_twilight",
     pos = { x = 2, y = 0 },
     discovered = true,
@@ -236,7 +238,7 @@ local mega = SMODS.Booster({
             "{C:inactive}(Must have room)",
         }
     },
-    config = { extra = 5, choose = 2 },
+    config = { extra = 4, choose = 2 },
     atlas = "p_flc_twilight",
     pos = { x = 3, y = 0 },
     discovered = true,
@@ -1134,7 +1136,7 @@ view.use = function(self, card, area, copier)
 
     for i=1, #table2 do
         local percent = 0.85 + (i-0.999)/(#table2-0.998)*0.3
-        G.E_MANAGER:add_event(Event({trigger = 'after',delay = 0.15,func = function() table2[i]:juice_up(); play_sound('tarot2', percent, 0.6);table2[i]:set_edition(poll_edition('flc_medusa', nil, false, true));return true end }))
+        G.E_MANAGER:add_event(Event({trigger = 'after',delay = 0.15,func = function() table2[i]:juice_up(); play_sound('tarot2', percent, 0.6);table2[i]:set_edition(poll_edition('flc_view', nil, false, true));return true end }))
     end 
 end
 
@@ -1167,7 +1169,7 @@ forever.loc_vars = function(self, info_queue, card)
     return {
         vars = {
             colours = {
-                HEX('c75985')
+                G.C.ETERNAL
             }
         }
     }
@@ -1189,14 +1191,23 @@ end
 
 forever.use = function(self, card, area, copier)
     delay(0.3)
-    card:juice_up(0.3, 0.5)
-    play_sound('tarot1')
+    G.E_MANAGER:add_event(Event({
+        trigger = 'after',
+        delay = 0.0,func = function() 
+            card:juice_up(0.3, 0.5)
+            play_sound('tarot1')
+            G.jokers.highlighted[1]:juice_up()
+            play_sound('gold_seal', 1.2, 0.4)
+            G.jokers.highlighted[1]:set_eternal(true)
+            return true 
+        end }))
     delay(0.5)
-    G.jokers.highlighted[1]:juice_up()
-    play_sound('gold_seal', 1.2, 0.4)
-    G.jokers.highlighted[1]:set_eternal(true)
-    delay(0.5)
-    G.jokers:unhighlight_all()
+    G.E_MANAGER:add_event(Event({
+        trigger = 'after',
+        delay = 0.0,func = function() 
+            G.jokers:unhighlight_all()
+            return true 
+        end }))
 end
 
 -- aurora
@@ -1209,7 +1220,8 @@ local aurora = SMODS.Consumable({
 	loc_txt = {
         name = 'Aurora',
         text = {
-    "Placeholder!"
+    "Turns a random {C:attention}Consumable{} in",
+    "your possession {C:dark_edition}Negative"
         }
     },
 	cost = 6,
@@ -1219,7 +1231,7 @@ local aurora = SMODS.Consumable({
 })
 
 aurora.loc_vars = function(self, info_queue, card)
-
+    info_queue[#info_queue+1] = {key = 'e_negative_consumable', set = 'Edition', config = {extra = 1}}
 end
 
 aurora.in_pool = function(self, args)
@@ -1234,10 +1246,32 @@ end
 
 aurora.use = function(self, card, area, copier)
 
+    local table2 = {}
+    for i=1, #G.consumeables.cards do
+        if G.consumeables.cards[i] ~= card and ((not G.consumeables.cards[i].edition) or (G.consumeables.cards[i].edition and not G.consumeables.cards[i].edition.negative)) then table2[#table2+1] = G.consumeables.cards[i] end
+    end
+
+    delay(0.3)
+    G.E_MANAGER:add_event(Event({
+        trigger = 'after',
+        delay = 0.0,
+        func = function() 
+            local con = pseudorandom_element(table2, pseudoseed('flc_aurora'))
+            card:juice_up(0.3, 0.5)
+            play_sound('tarot1')
+            con:juice_up()
+            con:set_edition({negative = true})
+            return true 
+        end }))
+    delay(0.5)
 end
 
 aurora.can_use = function(self, card)
-    return true
+    if G.consumeables then
+        for i=1, #G.consumeables.cards do
+            if G.consumeables.cards[i] ~= card and ((not G.consumeables.cards[i].edition) or (G.consumeables.cards[i].edition and not G.consumeables.cards[i].edition.negative)) then return true end
+        end
+    else return false end
 end
 
 -- reflection
@@ -1266,7 +1300,7 @@ reflection.loc_vars = function(self, info_queue, card)
     return {
         vars = {
             colours = {
-                HEX('4f5da1')
+                G.C.PERISHABLE
             }
         }
     }
@@ -1283,7 +1317,7 @@ reflection.draw = function(self, card, layer)
 end
 
 reflection.use = function(self, card, area, copier)
-    local chosen_joker = pseudorandom_element(G.jokers.cards, pseudoseed('ankh_choice'))
+    local chosen_joker = pseudorandom_element(G.jokers.cards, pseudoseed('flc_reflection_choice'))
     G.E_MANAGER:add_event(Event({trigger = 'before', delay = 0.4, func = function()
         local card = copy_card(chosen_joker, nil, nil, nil, chosen_joker.edition and chosen_joker.edition.negative)
         card:start_materialize()
@@ -1322,12 +1356,14 @@ end
 local treasure = SMODS.Consumable({
     key = "treasure",
     set = "m_femtoLabsCollection_twilight",
-    config = {},
+    config = {extra = 10},
 	pos = {x = 8, y = 1},
 	loc_txt = {
         name = 'Treasure',
         text = {
-    "Placeholder!"
+    "Makes all {C:joker}Jokers{} {V:1}Rental,",
+    "gain {C:money}$#1#{} per",
+    "{C:joker}Joker{} made {V:1}Rental"
         }
     },
 	cost = 6,
@@ -1337,7 +1373,15 @@ local treasure = SMODS.Consumable({
 })
 
 treasure.loc_vars = function(self, info_queue, card)
-
+    info_queue[#info_queue+1] = {key = 'rental', set = 'Other', vars = {G.GAME.rental_rate or 1}}
+    return {
+        vars = {
+            card.ability.extra,
+            colours = {
+                G.C.RENTAL
+            }
+        }
+    }
 end
 
 treasure.in_pool = function(self, args)
@@ -1351,11 +1395,37 @@ treasure.draw = function(self, card, layer)
 end
 
 treasure.use = function(self, card, area, copier)
+    local table2 = {}
 
+    delay(0.3)
+
+    for i=1, #G.jokers.cards do
+        if not G.jokers.cards[i].ability.rental then table2[#table2+1] = G.jokers.cards[i] end
+    end
+
+    for i=1, #table2 do
+        local percent = 0.85 + (i-0.999)/(#table2-0.998)*0.3
+        G.E_MANAGER:add_event(Event({
+            trigger = 'after',
+            delay = 0.15,
+            func = function() 
+                table2[i]:juice_up(); 
+                play_sound('tarot2', percent, 0.6);
+                table2[i]:set_rental(true)
+                return true 
+            end }))
+    end 
+    delay(0.3)
+    if #table2 > 0 then ease_dollars(card.ability.extra * #table2) end
+    delay(0.5)
 end
 
 treasure.can_use = function(self, card)
-    return true
+    if G.jokers then
+        for i=1, #G.jokers.cards do
+            if not G.jokers.cards[i].ability.rental then return true end
+        end
+    else return false end
 end
 
 -- samsara
@@ -1388,42 +1458,51 @@ samsara.loc_vars = function(self, info_queue, card)
 end
 
 samsara.can_use = function(self, card)
-    return G.GAME.pool_flags.flc_soldtable ~= nil and #G.GAME.pool_flags.flc_soldtable > 0
+    return G.flc_soldarea and G.flc_soldarea.cards and #G.flc_soldarea.cards > 0
 end
 
 samsara.in_pool = function(self, args)
-    return G.GAME.pool_flags.flc_soldtable ~= nil and #G.GAME.pool_flags.flc_soldtable > 0, {allow_duplicates = false}
+    return G.flc_soldarea and G.flc_soldarea.cards and #G.flc_soldarea.cards > 0, {allow_duplicates = false}
 end
 
 samsara.use = function(self, card, area, copier)
-    for i=1, #G.GAME.pool_flags.flc_soldtable do
-        G.E_MANAGER:add_event(Event({trigger = 'before', delay = 0.4, func = function()
-            local new = create_card(G.GAME.pool_flags.flc_soldtable[i].set, G.GAME.pool_flags.flc_soldtable[i].set == 'Joker' and G.jokers or G.consumables, nil, nil, true, true, G.GAME.pool_flags.flc_soldtable[i].key, '')
-            new.ability.type = G.GAME.pool_flags.flc_soldtable[i].type
-            new.ability.name = G.GAME.pool_flags.flc_soldtable[i].name
-            new:set_base(G.GAME.pool_flags.flc_soldtable[i].card)
-            new:set_edition({negative = true}, nil, false)
 
+    if not G.flc_soldarea then return end
+
+    local i = 1;
+
+    local sold_count = #G.flc_soldarea.cards
+
+    for _, new in pairs(G.flc_soldarea.cards) do
+        local i2 = i
+        G.E_MANAGER:add_event(Event({trigger = 'before', delay = 0.4, func = function()
+            local percent = 0.85 + (i2-0.999)/(sold_count-0.998)*0.3
+            play_sound('tarot2', percent, 0.6);
+            G.flc_soldarea:remove_card(new)
+            new.VT.x = card.VT.x
+            new.VT.y = card.VT.y
+            card:juice_up(0.3, 0.1)
+            new:set_edition({negative = true}, nil, false)
             new:start_materialize()
             new:add_to_deck()
-            if G.GAME.pool_flags.flc_soldtable[i].center then new:set_ability(G.GAME.pool_flags.flc_soldtable[i].center) end
             if new.ability.set == 'Joker' then
                 G.jokers:emplace(new)
             else 
                 G.consumeables:emplace(new)
             end
             return true end }))
+        i = i + 1
     end
-    G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.0, func = function()
-        G.GAME.pool_flags.flc_soldtable = {}
-        return true end }))
+    delay(0.5)
 end
 
 local sellRef = Card.sell_card
 
 Card.sell_card = function(self)
     sellRef(self)
-    G.GAME.pool_flags.flc_soldtable = G.GAME.pool_flags.flc_soldtable or {}
-    G.GAME.pool_flags.flc_soldtable[#G.GAME.pool_flags.flc_soldtable+1] = {set = self.ability.set, type = self.ability.type, center = self.config.center, card = self.config.card, key = self.config.center_key}
+
+    local card = copy_card(self, nil, nil, nil, false)
+
+    G.flc_soldarea:emplace(card)
 end
 

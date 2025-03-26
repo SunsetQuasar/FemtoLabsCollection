@@ -1,43 +1,61 @@
---[[local medusa = SMODS.Challenge({
-    key = "medusa",
+local threekanban = SMODS.Challenge({
+    key = "threekanban",
     loc_txt = {
-        name = "Medusa's Madness"
+        name = "Simon Says"
     },
     rules = {
         custom = {
-            {id = 'no_interest'},
-            {id = 'no_reward_specific', value = 'Small'},
+            {id = 'flc_purple_stake_scaling'}
         },
         modifiers = {
-            {id = 'hand_size', value = 10},
             {id = 'hands', value = 3},
+            {id = 'joker_slots', value = 1},
         }
     },
     jokers = {
-        {id = "j_femtoLabsCollection_flc_medusas_gaze", eternal = true},
-        {id = "j_pareidolia", eternal = true}
+        {id = "j_femtoLabsCollection_kanban", eternal = true, edition = 'negative'},
+        {id = "j_femtoLabsCollection_kanban", eternal = true, edition = 'negative'},
+        {id = "j_femtoLabsCollection_kanban", eternal = true, edition = 'negative'},
     },
     restrictions = {
         banned_cards = {
-            {id = 'j_stone'},
-            {id = 'j_marble'},
-            {id = 'j_femtoLabsCollection_flc_transmutation'},
-            {id = 'j_femtoLabsCollection_drill'},
-            {id = 'j_femtoLabsCollection_rollingstones'},
-            {id = 'c_pluto'},
-            
-            {id = 'c_magician'},
-            {id = 'c_empress'},
-            {id = 'c_heirophant'},
-            {id = 'c_lovers'},
-            {id = 'c_chariot'},
-            {id = 'c_justice'},
-            {id = 'c_devil'},
-            {id = 'c_tower'}
+            {id = 'c_femtoLabsCollection_life'},
+            {id = 'c_femtoLabsCollection_presence'},
+            {id = 'c_ectoplasm'},
+        },
+        banned_tags = {
+            {id = 'tag_negative'},
         },
         banned_other = {
-            {id = 'bl_plant', type = 'blind'},
-            {id = 'bl_mark', type = 'blind'},
+            {id = 'bl_femtoLabsCollection_flc_teal_tempest', type = 'blind'},
         }
     }
-})]]--
+})
+
+local start_runRef = Game.start_run
+
+Game.start_run = function(self, args)
+    start_runRef(self, args)
+    if G.GAME.modifiers['flc_purple_stake_scaling'] then
+        self.GAME.modifiers.scaling = 4
+        G:save_settings()
+    end
+end
+--[[
+local HelloIAmScragglyOne = SMODS.Challenge({
+    key = "HelloIAmScragglyOne",
+    loc_txt = {
+        name = "Hello! I am Scraggly1."
+    },
+    rules = {
+        modifiers = {
+            {id = 'joker_slots', value = 2},
+        }
+    },
+    jokers = {
+        {id = "j_femtoLabsCollection_scraggly", eternal = true},
+    },
+    restrictions = {
+    }
+})
+]]--

@@ -104,7 +104,7 @@ local slatedeck = SMODS.Back({
         text = {
             "{C:attention}-2{} Joker slots",
 			"Newly created cards may",
-			"be {C:attention}Sealed Stone Cards"
+			"be {C:attention}Sealed {T:m_stone}Stone Cards"
         }
     },
     atlas= "b_flc_decks"
@@ -205,7 +205,6 @@ G.FUNCS.reroll_shop = function(e)
 			  --stupid hack to make the reroll scale twice as fast
 			  calculate_reroll_cost(final_free)
 			  calculate_reroll_cost(final_free)
-			  calculate_reroll_cost(final_free)
 			  for i = #G.shop_booster.cards,1, -1 do
 				local c = G.shop_booster:remove_card(G.shop_booster.cards[i])
 				c:remove()
@@ -272,7 +271,7 @@ local foildeck = SMODS.Back({
         name = "Foil Deck",
         text = {
             "Every {C:attention}Joker{} is and",
-			"can only be {C:dark_edition}Foil{}",
+			"can only be {C:dark_edition,T:e_foil}Foil{}",
 			"{C:attention}-1{} Joker slot"
         }
     },
@@ -341,7 +340,7 @@ local pyrite = SMODS.Back({
 	loc_txt = {
         name = "Pyrite Deck",
         text = {
-            "Starting cards are {C:attention}Gold Cards{}",
+            "Starting cards are {C:attention,T:m_gold}Gold Cards{}",
 			"Earn no {C:attention}Interest{}, hands",
 			"lose {C:attention}$2{} per {C:attention}card played{} when",
 			"played with more than {C:attention}$0"
@@ -417,8 +416,8 @@ local mural = SMODS.Back({
 	loc_txt = {
         name = "Mural Deck",
         text = {
-            "Start with {C:attention}Dusk Shopper{}",
- 			"and a {C:attention}Presence{} card",
+            "Start with {C:attention,T:v_femtoLabsCollection_duskshopper}Dusk Shopper{}",
+ 			"and a {C:attention,T:c_femtoLabsCollection_presence}Presence{} card",
         }
     },
     atlas= "b_flc_decks"

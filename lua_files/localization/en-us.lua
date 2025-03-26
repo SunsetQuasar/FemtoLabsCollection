@@ -10,12 +10,29 @@ function SMODS.current_mod.process_loc_text()
 	G.localization.descriptions.Mod.FemtoLabsCollection = {
 		name = "Femto Labs Collection",
 		text = {
-			"Adds a bit of everything, with no particular theme.",
-			"{C:attention}Code{}: sunsetquasar",
-			"{C:attention}Concepts{}: sunsetquasar, ABuffZucchini, goose!, tobyaaa & zeodexic",
-			"{C:attention}Art{}: sunsetquasar, ABuffZucchini, tobyaaa, xolimono & dewdrop",
-			"{C:attention}Playtesting{}: JayTeff, zeodexic, ABuffZucchini, tobyaaa, vitellary", 
-			"{C:attention}Special thanks{}: vitellary",
+			"Adds a bit of everything,",
+			"with no particular theme.",
+			" ",
+			"{X:attention,C:white}Code:",
+			"sunsetquasar",
+			" ",
+			"{X:chips,C:white}Concepts:",
+			"sunsetquasar, ABuffZucchini, goose!,",
+			"tobyaaa, vitellary & zeodexic",
+			" ",
+			"{X:mult,C:white}Art:",
+			"sunsetquasar, ABuffZucchini, tobyaaa",
+			"xolimono, vitellary & dewdrop",
+			" ",
+			"{X:black,C:white}Playtesting:",
+			"JayTeff, zeodexic, ABuffZucchini,",
+			"tobyaaa & vitellary", 
+			" ",
+			"{X:dark_edition,C:white}Inspiration:",
+			"vitellary",
 		}
+	}
+	G.localization.misc.v_text['ch_c_flc_purple_stake_scaling'] = {
+		"Required score scales faster for each {C:attention}Ante",
 	}
 end

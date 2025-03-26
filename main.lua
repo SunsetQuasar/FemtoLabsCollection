@@ -2,11 +2,12 @@
 ------------MOD CODE -------------------------
 
 SMODS.current_mod.optional_features = { 
-    quantum_enhancements = false,
     cardareas = {
         unscored = true,
     },
  }
+
+femtoLabsCollection = {}
 
 SMODS.Atlas({key = "j_flc_jokers", path = "j_flc_jokers.png", px = 71, py = 95, atlas = "asset_atlas"})
 assert(load(NFS.read(SMODS.current_mod.path .. "lua_files/jokers.lua")))()
@@ -20,6 +21,8 @@ assert(load(NFS.read(SMODS.current_mod.path .. "lua_files/blinds.lua")))()
 SMODS.Atlas({key = "c_flc_twilight", path = "c_flc_twilight.png", px = 71, py = 95, atlas = "asset_atlas"})
 assert(load(NFS.read(SMODS.current_mod.path .. "lua_files/consumables.lua")))()
 
+assert(load(NFS.read(SMODS.current_mod.path .. "lua_files/sold_area.lua")))()
+
 SMODS.Atlas({key = "m_flc_enhancements", path = "m_flc_enhancements.png", px = 71, py = 95, atlas = "asset_atlas"})
 assert(load(NFS.read(SMODS.current_mod.path .. "lua_files/enhancements.lua")))()
 
@@ -32,6 +35,8 @@ SMODS.Atlas({key = "v_flc_vouchers", path = "v_flc_vouchers.png", px = 71, py = 
 assert(load(NFS.read(SMODS.current_mod.path .. "lua_files/vouchers.lua")))()
 
 --assert(load(NFS.read(SMODS.current_mod.path .. "lua_files/poker_hands.lua")))()
+
+assert(load(NFS.read(SMODS.current_mod.path .. "lua_files/challenges.lua")))()
 
 --SMODS.Atlas({key = "v_flc_vouchers", path = "v_flc_vouchers.png", px = 71, py = 95, atlas = "asset_atlas"})
 --assert(load(love.filesystem.read(SMODS.current_mod.path .. "lua_files/vouchers.lua")))()
