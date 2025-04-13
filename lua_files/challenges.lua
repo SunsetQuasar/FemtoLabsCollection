@@ -61,7 +61,6 @@ G.FUNCS.can_reroll = function(e)
     end
 end
 
---[[
 local HelloIAmScragglyOne = SMODS.Challenge({
     key = "HelloIAmScragglyOne",
     loc_txt = {
@@ -78,7 +77,6 @@ local HelloIAmScragglyOne = SMODS.Challenge({
     restrictions = {
     }
 })
-]]--
 
 
 local seveneightnineten = SMODS.Challenge({
