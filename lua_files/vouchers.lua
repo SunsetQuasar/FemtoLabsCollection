@@ -1,7 +1,7 @@
 local duskshopper = SMODS.Voucher({
     key = "duskshopper",
     loc_txt = {
-        name = "Dusk Shopper",
+        name = "Homecoming",
         text = {
             "{V:1}Twilight{} cards may",
             "appear in the {C:attention}Shop"
@@ -29,10 +29,10 @@ end
 local duskbooster = SMODS.Voucher({
     key = "duskbooster",
     loc_txt = {
-        name = "Dusk Booster",
+        name = "Derealization",
         text = {
-            "{V:1}Nightfall Packs{} may contain",
-            "{C:dark_edition}Negative {V:1}Twilight{} cards"
+            "All {V:1}Twilight{} cards may",
+            "be {C:dark_edition}Negative"
         }
     },
     atlas = 'v_flc_vouchers', 

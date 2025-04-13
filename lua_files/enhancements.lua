@@ -38,17 +38,18 @@ function eval_card(card, context)
                 extra_reps = extra_reps + 1
             end
         end
+        if extra_reps > 0 then
+            local rep_return = {
+                message = localize('k_again_ex'),
+                repetitions = extra_reps,
+                card = other_card
+            }
     
-        local rep_return = {
-            message = localize('k_again_ex'),
-            repetitions = extra_reps,
-            card = other_card
-        }
-
-        if ret.jokers then
-            table.insert(ret.jokers, rep_return)
-        else 
-            ret.jokers = rep_return
+            if ret.jokers then
+                table.insert(ret.jokers, rep_return)
+            else 
+                ret.jokers = rep_return
+            end
         end
     end
     return ret, post

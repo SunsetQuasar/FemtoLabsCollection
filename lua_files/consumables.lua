@@ -33,6 +33,8 @@ Card.init = function(self, X, Y, W, H, card, center, params)
             self.ability.extra = self.ability.extra + 1
         end
 		self.ability.choose = math.min(self.ability.choose + extra_choices, self.ability.extra)
+    elseif self.ability.set == 'm_femtoLabsCollection_twilight' and G.GAME['m_femtolabscollection_twilight_negatives'] and pseudorandom('flc_twilight_negative') < 1/5 then
+        self:set_edition({negative = true}, true)
     end
 end
 
@@ -113,7 +115,7 @@ std1.loc_vars = function(self, loc_vars, card)
 end
 
 std1.create_card = function(self, card, i)
-    return {set = "m_femtoLabsCollection_twilight", area = G.pack_cards, key_append = "m_flc_booster_"..i, soulable = true, no_edition = true, skip_materialize = true, edition = {negative = G.GAME['m_femtolabscollection_twilight_negatives'] and pseudorandom('flc_twilight_negative') < 1/5 or nil}}
+    return {set = "m_femtoLabsCollection_twilight", area = G.pack_cards, key_append = "m_flc_booster_"..i, soulable = true, no_edition = true, skip_materialize = true}
 end
 
 std1.ease_background_colour = function(self)
@@ -163,7 +165,7 @@ std2.loc_vars = function(self, loc_vars, card)
 end
 
 std2.create_card = function(self, card, i)
-    return {set = "m_femtoLabsCollection_twilight", area = G.pack_cards, key_append = "m_flc_booster_"..i, soulable = true, no_edition = true, skip_materialize = true, edition = {negative = G.GAME['m_femtolabscollection_twilight_negatives'] and pseudorandom('flc_twilight_negative') < 1/5 or nil}}
+    return {set = "m_femtoLabsCollection_twilight", area = G.pack_cards, key_append = "m_flc_booster_"..i, soulable = true, no_edition = true, skip_materialize = true}
 end
 
 std2.ease_background_colour = function(self)
@@ -213,7 +215,7 @@ jumbo.loc_vars = function(self, loc_vars, card)
 end
 
 jumbo.create_card = function(self, card, i)
-    return {set = "m_femtoLabsCollection_twilight", area = G.pack_cards, key_append = "m_flc_booster_"..i, soulable = true, no_edition = true, skip_materialize = true, edition = {negative = G.GAME['m_femtolabscollection_twilight_negatives'] and pseudorandom('flc_twilight_negative') < 1/5 or nil}}
+    return {set = "m_femtoLabsCollection_twilight", area = G.pack_cards, key_append = "m_flc_booster_"..i, soulable = true, no_edition = true, skip_materialize = true}
 end
 
 jumbo.ease_background_colour = function(self)
@@ -263,7 +265,7 @@ mega.loc_vars = function(self, loc_vars, card)
 end
 
 mega.create_card = function(self, card, i)
-    return {set = "m_femtoLabsCollection_twilight", area = G.pack_cards, key_append = "m_flc_booster_"..i, soulable = true, no_edition = true, skip_materialize = true, edition = {negative = G.GAME['m_femtolabscollection_twilight_negatives'] and pseudorandom('flc_twilight_negative') < 1/5 or nil}}
+    return {set = "m_femtoLabsCollection_twilight", area = G.pack_cards, key_append = "m_flc_booster_"..i, soulable = true, no_edition = true, skip_materialize = true}
 end
 
 mega.ease_background_colour = function(self)
@@ -336,14 +338,14 @@ end
 local fleeting = SMODS.Consumable({
     key = "fleeting",
     set = "m_femtoLabsCollection_twilight",
-    config = {extra = {card_amt = 3}},
+    config = {mod_conv = 'm_femtoLabsCollection_ice_card', max_highlighted = 2},
 	pos = {x = 1, y = 0},
 	loc_txt = {
         name = 'Fleeting',
         text = {
-    "Enhances {C:attention}#1#",
-    "random cards in",
-    "hand to {C:attention}#2#s",
+            "Enhances up to {C:attention}#1#",
+            "selected cards to",
+            "{C:attention}#2#s"
         }
     },
 	cost = 6,
@@ -360,43 +362,11 @@ fleeting.loc_vars = function(self, info_queue, card)
     info_queue[#info_queue+1] = G.P_CENTERS.m_femtoLabsCollection_ice_card
     return {
         vars = {
-            card.ability.extra.card_amt,
+            card.ability.max_highlighted,
             localize{type = 'name_text', set = 'Enhanced', key = 'm_femtoLabsCollection_ice_card'}
         }
     }
 end
-
-fleeting.can_use = function(self, card)
-    if (G.STATE == G.STATES.SELECTING_HAND or G.STATES.SMODS_BOOSTER_OPENED) and #G.hand.cards > 0 then return true else return false end
-end
-
-
-fleeting.use = function(self, card, area, copier)
-    local selected = {}
-    local temp_hand = {}
-    for k, v in ipairs(G.hand.cards) do temp_hand[#temp_hand+1] = v end
-    table.sort(temp_hand, function (a, b) return not a.playing_card or not b.playing_card or a.playing_card < b.playing_card end)
-    pseudoshuffle(temp_hand, pseudoseed('immolate'))
-
-    for i = 1, card.ability.extra.card_amt do selected[#selected+1] = temp_hand[i] end
-
-    G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4, func = function()
-        play_sound('tarot1')
-        card:juice_up(0.3, 0.5)
-        return true end }))
-    for i=1, #selected do
-        local percent = 1.15 - (i-0.999)/(#selected-0.998)*0.3
-        G.E_MANAGER:add_event(Event({trigger = 'after',delay = 0.15,func = function() selected[i]:flip();play_sound('card1', percent);selected[i]:juice_up(0.3, 0.3);return true end }))
-    end
-    delay(0.2)
-    for i=1, #selected do
-        selected[i]:set_ability(G.P_CENTERS.m_femtoLabsCollection_ice_card, nil, true)
-        local percent = 0.85 + (i-0.999)/(#selected-0.998)*0.3
-        G.E_MANAGER:add_event(Event({trigger = 'after',delay = 0.15,func = function() selected[i]:flip();play_sound('tarot2', percent, 0.6);selected[i]:juice_up(0.3, 0.3);return true end }))
-    end
-    delay(0.5)
-end
-
 
 fleeting.draw = function(self, card, layer)
     if (layer == 'card' or layer == 'both') then
@@ -458,12 +428,12 @@ end
 local sampo = SMODS.Consumable({
     key = "sampo",
     set = "m_femtoLabsCollection_twilight",
-    config = {extra = {destroy = 2, gold = 3}},
+    config = {extra = {destroy = 1, gold = 4}},
 	pos = {x = 3, y = 0},
 	loc_txt = {
         name = 'Sampo',
         text = {
-    "Destroys {C:attention}#1#{} random cards",
+    "Destroys {C:attention}#1#{} random card",
     "in hand, enhance {C:attention}#2#{} random",
     "cards in hand to {C:attention}Gold Cards{}"
         }
@@ -681,7 +651,7 @@ local penumbra = SMODS.Consumable({
         text = {
     "Turns {C:attention}a selected",
     "card in your hand",
-    "into a {C:dark_edition}Negative{} card"
+    "into a {C:dark_edition}Negative{} card",
         }
     },
 	cost = 6,
@@ -694,7 +664,6 @@ penumbra.loc_vars = function(self, info_queue, card)
     info_queue[#info_queue+1] = {key = "e_negative_playing_card", set = "Edition", config = {extra = G.P_CENTERS['e_negative'].config.card_limit}}
     return {
         vars = {
-            card.ability.max_highlighted
         }
     }
 end
@@ -795,7 +764,7 @@ end
 local decay = SMODS.Consumable({
     key = "decay",
     set = "m_femtoLabsCollection_twilight",
-    config = {extra = 20},
+    config = {extra = 25},
 	pos = {x = 8, y = 0},
 	loc_txt = {
         name = 'Decay',
@@ -803,7 +772,7 @@ local decay = SMODS.Consumable({
     "Removes {C:dark_edition}Edition{} from",
     "a random {C:joker}Joker,",
     "gain {C:money}$#1#",
-    --"{C:inactive,s:0.8}(Cannot remove {C:dark_edition,s:0.8}Negative{}{C:inactive,s:0.8})"
+    "{C:inactive,s:0.8}(Cannot remove {C:dark_edition,s:0.8}Negative{}{C:inactive,s:0.8})"
         }
     },
 	cost = 6,
@@ -824,7 +793,7 @@ decay.can_use = function(self, card)
     if G.jokers and G.jokers.cards and #G.jokers.cards > 0 then
         local edtable = {}
         for i=1, #G.jokers.cards do
-            if G.jokers.cards[i].edition then
+            if G.jokers.cards[i].edition and not G.jokers.cards[i].edition.negative then
                 table.insert(edtable, G.jokers.cards[i])
             end
         end
@@ -839,7 +808,7 @@ decay.use = function(self, card, area, copier)
         card:juice_up(0.3, 0.5)
         local edtable = {}
         for i=1, #G.jokers.cards do
-            if G.jokers.cards[i].edition then
+            if G.jokers.cards[i].edition and not G.jokers.cards[i].edition.negative then
                 table.insert(edtable, G.jokers.cards[i])
             end
         end
@@ -852,7 +821,7 @@ decay.use = function(self, card, area, copier)
 end
 
 decay.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return self:can_use(nil), {allow_duplicates = false}
 end
 
 decay.draw = function(self, card, layer)
@@ -1082,9 +1051,9 @@ local view = SMODS.Consumable({
 	loc_txt = {
         name = 'View',
         text = {
-    "Creates a random {C:planet}Planet Card",
-    "then give an {C:dark_edition}Edition{} to all",
-    "{C:attention}consumables{} in your possession", "{C:inactive}(if possible)"
+    "Fills all {C:attention}empty{} consumable",
+    "slots with {C:dark_edition}Foil{}, {C:dark_edition}Holographic",
+    "or {C:dark_edition}Polychrome {C:planet}Planet Cards{}",
         }
     },
 	cost = 6,
@@ -1097,7 +1066,6 @@ view.loc_vars = function(self, info_queue, card)
     info_queue[#info_queue+1] = G.P_CENTERS.e_foil; 
     info_queue[#info_queue+1] = G.P_CENTERS.e_holo; 
     info_queue[#info_queue+1] = G.P_CENTERS.e_polychrome; 
-    info_queue[#info_queue+1] = {key = 'e_negative_consumable', set = 'Edition', config = {extra = 1}}
 end
 
 view.in_pool = function(self, args)
@@ -1111,33 +1079,19 @@ view.draw = function(self, card, layer)
 end
 
 view.use = function(self, card, area, copier)
-    if G.consumeables.config.card_limit - #G.consumeables.cards > 0 then
-        local _card = SMODS.create_card({
-            set = 'Planet', 
-            key_append = 'flc_view',
-        })
-        _card:add_to_deck()
-        G.consumeables:emplace(_card)
+    for i = 1, G.consumeables.config.card_limit - #G.consumeables.cards do
         G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4, func = function()
             if G.consumeables.config.card_limit > #G.consumeables.cards then
                 play_sound('timpani')
-                _card:start_materialize()
-                _card:juice_up(0.3, 0.5)
+                local card = SMODS.create_card({set = 'Planet', key_append = 'flc_view'})
+                card:add_to_deck()
+                G.consumeables:emplace(card)
+                card:juice_up(0.3, 0.5)
+                card:set_edition(poll_edition('flc_view_edition', nil, true, true))
             end
             return true end }))
     end
-
-    local table2 = {_card}
-    for i=1, #G.consumeables.cards do
-        if not G.consumeables.cards[i].edition then
-            table2[#table2+1] = G.consumeables.cards[i]
-        end
-    end
-
-    for i=1, #table2 do
-        local percent = 0.85 + (i-0.999)/(#table2-0.998)*0.3
-        G.E_MANAGER:add_event(Event({trigger = 'after',delay = 0.15,func = function() table2[i]:juice_up(); play_sound('tarot2', percent, 0.6);table2[i]:set_edition(poll_edition('flc_view', nil, false, true));return true end }))
-    end 
+    delay(0.6)
 end
 
 view.can_use = function(self, card)
@@ -1215,13 +1169,15 @@ end
 local aurora = SMODS.Consumable({
     key = "aurora",
     set = "m_femtoLabsCollection_twilight",
-    config = {},
+    config = {extra = 2},
 	pos = {x = 5, y = 1},
 	loc_txt = {
         name = 'Aurora',
         text = {
-    "Turns a random {C:attention}Consumable{} in",
-    "your possession {C:dark_edition}Negative"
+            "Creates up to {C:attention}#1#",
+            "consumables from",
+            "{C:attention}random sets",
+            "{C:inactive}(Must have room)",
         }
     },
 	cost = 6,
@@ -1231,7 +1187,11 @@ local aurora = SMODS.Consumable({
 })
 
 aurora.loc_vars = function(self, info_queue, card)
-    info_queue[#info_queue+1] = {key = 'e_negative_consumable', set = 'Edition', config = {extra = 1}}
+    return {
+        vars = {
+            card.ability.extra
+        }
+    }
 end
 
 aurora.in_pool = function(self, args)
@@ -1245,33 +1205,22 @@ aurora.draw = function(self, card, layer)
 end
 
 aurora.use = function(self, card, area, copier)
-
-    local table2 = {}
-    for i=1, #G.consumeables.cards do
-        if G.consumeables.cards[i] ~= card and ((not G.consumeables.cards[i].edition) or (G.consumeables.cards[i].edition and not G.consumeables.cards[i].edition.negative)) then table2[#table2+1] = G.consumeables.cards[i] end
+    for i = 1, math.min(card.ability.extra, G.consumeables.config.card_limit - #G.consumeables.cards) do
+        G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4, func = function()
+            if G.consumeables.config.card_limit > #G.consumeables.cards then
+                play_sound('timpani')
+                local card = SMODS.create_card({set = pseudorandom_element(SMODS.ConsumableTypes, pseudoseed('flc_aurora_set')).key, key_append = 'flc_aurora'})
+                card:add_to_deck()
+                G.consumeables:emplace(card)
+                card:juice_up(0.3, 0.5)
+            end
+            return true end }))
     end
-
-    delay(0.3)
-    G.E_MANAGER:add_event(Event({
-        trigger = 'after',
-        delay = 0.0,
-        func = function() 
-            local con = pseudorandom_element(table2, pseudoseed('flc_aurora'))
-            card:juice_up(0.3, 0.5)
-            play_sound('tarot1')
-            con:juice_up()
-            con:set_edition({negative = true})
-            return true 
-        end }))
-    delay(0.5)
+    delay(0.6)
 end
 
 aurora.can_use = function(self, card)
-    if G.consumeables then
-        for i=1, #G.consumeables.cards do
-            if G.consumeables.cards[i] ~= card and ((not G.consumeables.cards[i].edition) or (G.consumeables.cards[i].edition and not G.consumeables.cards[i].edition.negative)) then return true end
-        end
-    else return false end
+    return true
 end
 
 -- reflection

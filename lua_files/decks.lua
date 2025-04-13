@@ -114,11 +114,11 @@ slatedeck.apply = function(self, back)
 	G.GAME.starting_params.joker_slots = 3
 end
 
-local createRef = create_card
+local createRef = SMODS.create_card
 
-function create_card(_type, area, legendary, _rarity, skip_materialize, soulable, forced_key, key_append)
+function SMODS.create_card(t)
 
-	local ret = createRef(_type, area, legendary, _rarity, skip_materialize, soulable, forced_key, key_append)
+	local ret = createRef(t)
 
 	-- foil deck part
 
@@ -128,7 +128,7 @@ function create_card(_type, area, legendary, _rarity, skip_materialize, soulable
 
 	-- slate deck
 
-	if (_type == 'Base' or _type == 'Enhanced') and G.GAME.starting_params.flc_slatedeck then
+	if (t.set == 'Base' or t.set == 'Enhanced') and G.GAME.starting_params.flc_slatedeck then
 		if pseudorandom('flc_slatedeck2') < 0.5 then
 			local silent = not not ret.seal
 			ret:set_ability(G.P_CENTERS['m_stone'])
@@ -136,6 +136,7 @@ function create_card(_type, area, legendary, _rarity, skip_materialize, soulable
 			ret:set_seal(pseudorandom_element(G.P_CENTER_POOLS['Seal'], pseudoseed('flc_vol_sealpool')).key, silent)
 		end
 	end
+
 	return ret
 end
 
@@ -416,7 +417,7 @@ local mural = SMODS.Back({
 	loc_txt = {
         name = "Mural Deck",
         text = {
-            "Start with {C:attention,T:v_femtoLabsCollection_duskshopper}Dusk Shopper{}",
+            "Start with {C:attention,T:v_femtoLabsCollection_duskshopper}Homecoming{}",
  			"and a {C:attention,T:c_femtoLabsCollection_presence}Presence{} card",
         }
     },

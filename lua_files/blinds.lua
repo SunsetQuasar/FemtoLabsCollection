@@ -221,7 +221,7 @@ local eval_cardRef = eval_card
 
 function eval_card(card, context)
     local ret, post = eval_cardRef(card, context)
-    if G.GAME.blind.config.blind.debuff_xmult and G.GAME.blind.config.blind:debuff_xmult() then
+    if G.GAME.blind and G.GAME.blind.config.blind.debuff_xmult and G.GAME.blind.config.blind:debuff_xmult() then
         if ret.x_mult then ret.x_mult = nil end
         if ret.edition and card.edition and card.edition.polychrome then ret.edition = nil end
         if ret.jokers and ret.jokers.x_mult_mod then ret.jokers.x_mult_mod = nil end
@@ -234,7 +234,7 @@ local cj = Card.calculate_joker
 
 function Card:calculate_joker(context)
     local ret = cj(self, context)
-    if ret and G.GAME.blind.config.blind.debuff_xmult and G.GAME.blind.config.blind:debuff_xmult() then
+    if ret and G.GAME.blind and G.GAME.blind.config.blind.debuff_xmult and G.GAME.blind.config.blind:debuff_xmult() then
 
         if ret.x_mult then ret.x_mult = nil end
         if ret.Xmult_mod then 
@@ -250,7 +250,7 @@ local xmultRef = Card.get_chip_x_mult
 
 function Card:get_chip_x_mult(context)
     local ret = xmultRef(self, context)
-    if G.GAME.blind.config.blind.debuff_xmult and G.GAME.blind.config.blind:debuff_xmult() then
+    if G.GAME.blind and G.GAME.blind.config.blind.debuff_xmult and G.GAME.blind.config.blind:debuff_xmult() then
         return 0
     end
     return ret
@@ -260,7 +260,7 @@ local hxmultRef = Card.get_chip_h_x_mult
 
 function Card:get_chip_h_x_mult(context)
     local ret = hxmultRef(self, context)
-    if G.GAME.blind.config.blind.debuff_xmult and G.GAME.blind.config.blind:debuff_xmult() then
+    if G.GAME.blind and G.GAME.blind.config.blind.debuff_xmult and G.GAME.blind.config.blind:debuff_xmult() then
         return 0
     end
     return ret

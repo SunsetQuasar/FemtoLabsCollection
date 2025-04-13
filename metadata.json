@@ -7,7 +7,7 @@
 		"where did my localization go",
 	"prefix": "femtoLabsCollection",
 	"main_file": "main.lua",
-	"priority": -40,
+	"priority": 12,
 	"badge_colour": "A54D75",
 	"badge_text_colour": "F9DDC5",
 	"version": "0.0.3",

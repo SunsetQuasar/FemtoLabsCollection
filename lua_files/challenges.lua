@@ -38,9 +38,29 @@ Game.start_run = function(self, args)
     start_runRef(self, args)
     if G.GAME.modifiers['flc_purple_stake_scaling'] then
         self.GAME.modifiers.scaling = 4
-        G:save_settings()
+    end
+
+    if G.GAME.modifiers['flc_empty_shop'] then
+        change_shop_size(-1)
+        G.GAME.pool_flags.empty_shop_enabled = true
+    end
+    
+    if G.GAME.modifiers['flc_one_booster'] then
+        G.GAME.modifiers.extra_boosters = -1;
     end
 end
+
+can_rerollRef = G.FUNCS.can_reroll
+
+G.FUNCS.can_reroll = function(e)
+    if G.GAME and G.GAME.pool_flags.empty_shop_enabled and G.GAME.shop.joker_max <= 0 then
+        e.config.colour = G.C.UI.BACKGROUND_INACTIVE
+        e.config.button = nil
+    else
+        can_rerollRef(e)
+    end
+end
+
 --[[
 local HelloIAmScragglyOne = SMODS.Challenge({
     key = "HelloIAmScragglyOne",
@@ -59,3 +79,49 @@ local HelloIAmScragglyOne = SMODS.Challenge({
     }
 })
 ]]--
+
+
+local seveneightnineten = SMODS.Challenge({
+    key = "seveneightnineten",
+    loc_txt = {
+        name = "Let's Learn Counting"
+    },
+    rules = {
+        custom = {
+            {id = 'no_shop_jokers'},
+        },
+        modifiers = {
+        }
+    },
+    jokers = {
+        {id = "j_femtoLabsCollection_sevenball", eternal = true},
+        {id = "j_8_ball", eternal = true},
+        {id = "j_cloud_9", eternal = true},
+        {id = "j_femtoLabsCollection_cloud10", eternal = true},
+    },
+    restrictions = {
+    }
+})
+
+local outofstock = SMODS.Challenge({
+    key = "outofstock",
+    loc_txt = {
+        name = "Stockout"
+    },
+    rules = {
+        custom = {
+            {id = 'flc_empty_shop'},
+            {id = 'flc_one_booster'},
+        },
+        modifiers = {
+        }
+    },
+    jokers = {
+    },
+    restrictions = {
+        banned_cards = {
+            {id = 'v_overstock_plus'},
+        },
+    }
+})
+

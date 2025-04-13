@@ -538,8 +538,8 @@ local alloy = SMODS.Joker({
 	loc_txt = { 
         name = 'Banded Iron Formation',
         text = {
-	"{C:attention}Stone Cards{} each give {X:mult,C:white}X#1#",
-    "when held in hand"
+	"{C:attention}Stone Cards{} each give",
+    "{X:mult,C:white}X#1# when held in hand"
         }
     },
 	rarity = 2,
@@ -1375,7 +1375,7 @@ local envelope = SMODS.Joker({
 	loc_txt = { 
         name = 'Evidence Envelope',
         text = {
-	"If played hand has a {C:attention}#1#{}",
+	"If played hand contains {C:attention}#1#{}",
     "of {V:1}#2#{} in a {C:attention}#3#{},",
     "destroy all other played cards",
     "{s:0.8}Rank, Suit and Poker Hand changes each round",
@@ -1975,7 +1975,7 @@ kanban.calculate = function(self, card, context) -- i'm scared.
         card.ability.extra.xmult = math.max(1, card.ability.extra.xmult + extra)
         if prev == card.ability.extra.xmult or extra == 0 then return end
         G.E_MANAGER:add_event(Event({
-            func = function() card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize{type = 'variable', key = 'a_xmult', vars = {self.ability.caino_xmult}}}); return true
+            func = function() card_eval_status_text(card, 'extra', nil, nil, nil, {message = localize{type = 'variable', key = 'a_xmult', vars = {card.ability.extra.xmult}}}); return true
             end}))
         return
     end
@@ -3226,6 +3226,12 @@ local dancer = SMODS.Joker({
 	atlas = "j_flc_jokers"
 })
 
+dancer.set_ability = function(self, card)
+    if G.GAME.current_round.hands_played <= 0 and G.GAME.round_resets.blind_states.Small ~= 'Defeated' then
+        card.ability.extra.active = true
+    end
+end
+
 dancer.loc_vars = function(self, info_queue, card)
     return {
         vars = {
@@ -3265,7 +3271,7 @@ local snooze = SMODS.Joker({
         }
     },
 	rarity = 3,
-	cost = 4,
+	cost = 8,
 	discovered = true,
 	blueprint_compat = true,
 	eternal_compat = true,
@@ -3305,7 +3311,448 @@ snooze.calculate = function(self, card, context)
     end
 end
 
--------- end dancer --------
+-------- end snooze --------
+
+-- 7 ball -- 
+
+local sevenball = SMODS.Joker({
+	key = "sevenball",
+    config = {extra = 7},
+	pos = {x = 2, y = 6},
+	loc_txt = { 
+        name = '7 Ball',
+        text = {
+            "{C:green}#1# in #2#{} chance for each",
+            "played {C:attention}7{} to create a",
+            "{V:1}Twilight{} card when scored",
+            "{C:inactive}(Must have room)",
+        }
+    },
+	rarity = 3,
+	cost = 8,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = true,
+	perishable_compat = true,
+	atlas = "j_flc_jokers"
+})
+
+sevenball.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+            (G.GAME and G.GAME.probabilities.normal or 1),
+            card.ability.extra,
+            colours = {
+                flc_twilight_colour
+            }
+        }
+    }
+end
+
+sevenball.calculate = function(self, card, context)
+    if context.individual and context.cardarea == G.play and context.other_card:get_id() == 7 and pseudorandom('flc_7ball') < G.GAME.probabilities.normal/card.ability.extra and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
+        G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
+        return {
+            extra = {focus = card, message = "+1 Twilight", func = function()
+                G.E_MANAGER:add_event(Event({
+                    trigger = 'before',
+                    delay = 0.0,
+                    func = (function()
+                            local _card = SMODS.create_card({
+                                set = "m_femtoLabsCollection_twilight",
+                                area = G.consumeables,
+                                key_append = "flc_sevenbALL"
+                            })
+                            _card:add_to_deck()
+                            G.consumeables:emplace(_card)
+                            G.GAME.consumeable_buffer = 0
+                        return true
+                    end)}))
+            end},
+            colour = flc_twilight_colour,
+            card = card
+        }
+    end
+end
+
+-------- end 7 ball --------
+
+-- cloud 10 -- 
+
+local cloud10 = SMODS.Joker({
+	key = "cloud10",
+    config = {extra = {dollars = 0, dollar_mod = 2}},
+	pos = {x = 3, y = 6},
+	loc_txt = { 
+        name = 'Cloud 10',
+        text = {
+            "Earn {C:money}$#2#{} at the end",
+            "of round per {C:attention}unscored",
+            "{C:attention}10{} played this round",
+            "{C:inactive}(Currently {C:money}$#1#{C:inactive})"
+        }
+    },
+	rarity = 2,
+	cost = 6,
+	discovered = true,
+	blueprint_compat = false,
+	eternal_compat = true,
+	perishable_compat = true,
+	atlas = "j_flc_jokers"
+})
+
+cloud10.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+            card.ability.extra.dollars,
+            card.ability.extra.dollar_mod,
+        }
+    }
+end
+
+cloud10.calculate = function(self, card, context)
+    if context.blueprint then return end
+    if context.individual and context.cardarea == 'unscored' and context.other_card:get_id() == 10 then
+        card.ability.extra.dollars = card.ability.extra.dollars + card.ability.extra.dollar_mod
+    end
+end
+
+cloud10.calc_dollar_bonus = function(self, card)
+    if card.ability.extra.dollars > 0 then
+        local temp = card.ability.extra.dollars
+        card.ability.extra.dollars = 0
+        return temp
+    end
+end
+
+-------- end cloud 10 --------
+
+-- wee greedy joker -- 
+
+local weegreedy = SMODS.Joker({
+	key = "weegreedy",
+    config = {extra = {suit = "Diamonds", money = 0, req = 10, progress = 0}},
+	pos = {x = 6, y = 1},
+	loc_txt = { 
+        name = 'Wee Greedy Joker',
+        text = {
+            "This joker gains {C:money}$1{} of end",
+            "of round cash every {C:attention}#2#{} {C:inactive}[#3#]{}",
+            "{C:diamonds}#4#{} cards scored",
+            "{C:inactive}(Currently {C:money}$#1#{C:inactive})"
+        }
+    },
+    display_size = { w = 71 * 0.7, h = 95 * 0.7 },
+	rarity = 3,
+	cost = 8,
+	discovered = true,
+	blueprint_compat = false,
+	eternal_compat = true,
+	perishable_compat = true,
+})
+
+weegreedy.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+        card.ability.extra.money,
+        card.ability.extra.req,
+        card.ability.extra.req - card.ability.extra.progress,
+        localize(card.ability.extra.suit, 'suits_singular')
+        }
+    }
+end
+
+weegreedy.calculate = function(self, card, context)
+    if (not context.blueprint) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
+        card.ability.extra.progress = card.ability.extra.progress + 1
+        if card.ability.extra.progress >= card.ability.extra.req then
+            card.ability.extra.money =  card.ability.extra.money + 1
+            card.ability.extra.progress = 0
+            return {
+                extra = {focus = card, message = localize('k_upgrade_ex')},
+                card = card,
+                colour = G.C.MONEY
+            }
+        end
+    end
+end
+
+weegreedy.calc_dollar_bonus = function(self, card)
+    if card.ability.extra.money > 0 then
+        return card.ability.extra.money
+    end
+end
+
+-------- end wee greedy joker --------
+
+-- wee lusty joker -- 
+
+local weelusty = SMODS.Joker({
+	key = "weelusty",
+    config = {extra = {suit = "Hearts", xmult_mod = 0.03}},
+	pos = {x = 7, y = 1},
+	loc_txt = { 
+        name = 'Wee Lusty Joker',
+        text = {
+            "This Joker gains {X:mult,C:white}X#1#{} Mult",
+            "per {C:hearts}#2#{} card scored",
+            "{C:inactive}(Currently {X:mult,C:white}X#3#{C:inactive} Mult)"
+        }
+    },
+    display_size = { w = 71 * 0.7, h = 95 * 0.7 },
+	rarity = 3,
+	cost = 8,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = true,
+	perishable_compat = true,
+})
+
+weelusty.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+        card.ability.extra.xmult_mod,
+        localize(card.ability.extra.suit, 'suits_singular'),
+        card.ability.x_mult
+        }
+    }
+end
+
+weelusty.calculate = function(self, card, context)
+    if (not context.blueprint) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
+        card.ability.x_mult = card.ability.x_mult + card.ability.extra.xmult_mod
+        return {
+            extra = {focus = card, message = localize('k_upgrade_ex')},
+            card = card,
+            colour = G.C.RED
+        }
+    end
+end
+
+-------- end wee lusty joker --------
+
+-- wee wrathful joker -- 
+
+local weewrathful = SMODS.Joker({
+	key = "weewrathful",
+    config = {extra = {suit = "Spades", chips = 0, chip_mod = 4}},
+	pos = {x = 8, y = 1},
+	loc_txt = { 
+        name = 'Wee Wrathful Joker',
+        text = {
+            "This Joker gains {C:chips}+#1#{} Chips",
+            "per {C:spades}#2#{} card scored",
+            "{C:inactive}(Currently {C:chips}+#3#{C:inactive} Chips)"
+        }
+    },
+    display_size = { w = 71 * 0.7, h = 95 * 0.7 },
+	rarity = 3,
+	cost = 8,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = true,
+	perishable_compat = true,
+})
+
+weewrathful.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+        card.ability.extra.chip_mod,
+        localize(card.ability.extra.suit, 'suits_singular'),
+        card.ability.extra.chips
+        }
+    }
+end
+
+weewrathful.calculate = function(self, card, context)
+    if (not context.blueprint) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
+        card.ability.extra.chips = card.ability.extra.chips + card.ability.extra.chip_mod
+        return {
+            extra = {focus = card, message = localize('k_upgrade_ex')},
+            card = card,
+            colour = G.C.CHIPS
+        }
+    end
+    if context.joker_main then
+        return {
+            message = localize{type='variable',key='a_chips',vars={card.ability.extra.chips}},
+            chip_mod = card.ability.extra.chips,
+        }
+    end
+end
+
+
+-------- end wee wrathful joker --------
+
+-- wee gluttonous joker -- 
+
+local weegluttonous = SMODS.Joker({
+	key = "weegluttonous",
+    config = {extra = {suit = "Clubs", mult = 0, req = 6, progress = 0, mult_mod = 7}},
+	pos = {x = 9, y = 1},
+	loc_txt = { 
+        name = 'Wee Gluttonous Joker',
+        text = {
+            "This Joker gains {C:mult}+#5#{} Mult per",
+            "{C:attention}#2#{} {C:inactive}[#3#]{} {C:clubs}#4#{} cards played",
+            "{C:inactive}(Currently {C:mult}+#1#{C:inactive} Mult)"
+        }
+    },
+    display_size = { w = 71 * 0.7, h = 95 * 0.7 },
+	rarity = 3,
+	cost = 8,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = true,
+	perishable_compat = true,
+})
+
+weegluttonous.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+        card.ability.extra.mult,
+        card.ability.extra.req,
+        card.ability.extra.req - card.ability.extra.progress,
+        localize(card.ability.extra.suit, 'suits_singular'),
+        card.ability.extra.mult_mod
+        }
+    }
+end
+
+weegluttonous.calculate = function(self, card, context)
+    if (not context.blueprint) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
+        card.ability.extra.progress = card.ability.extra.progress + 1
+        if card.ability.extra.progress >= card.ability.extra.req then
+            card.ability.extra.mult = card.ability.extra.mult + card.ability.extra.mult_mod
+            card.ability.extra.progress = 0
+            return {
+                extra = {focus = card, message = localize('k_upgrade_ex')},
+                card = card,
+                colour = G.C.RED
+            }
+        end
+    end
+    if context.joker_main then
+        return {
+            message = localize{type='variable',key='a_mult',vars={card.ability.extra.mult}},
+            mult_mod = card.ability.extra.mult
+        }
+    end
+end
+
+-------- end wee gluttonous joker --------
+
+-- city plan -- 
+
+local cityplan = SMODS.Joker({
+	key = "cityplan",
+    config = {extra = 3},
+	pos = {x = 4, y = 6},
+	loc_txt = { 
+        name = 'City Plan',
+        text = {
+            "{C:attention}Retriggers{} all {C:attention}Jokers{} to the left",
+            "Lose {C:money}$#1#{} every time a Joker",
+            "is {C:attention}retriggered{} by City Plan",
+            "{C:inactive,s:0.8}(Concept: ABuffZucchini)"
+
+        }
+    },
+	rarity = 3,
+	cost = 10,
+	discovered = true,
+	blueprint_compat = false,
+	eternal_compat = true,
+	perishable_compat = true,
+	atlas = "j_flc_jokers"
+})
+
+cityplan.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+            card.ability.extra
+        }
+    }
+end
+
+cityplan.calculate = function(self, card, context)
+    if context.blueprint then return end
+    if context.retrigger_joker_check then 
+        local city, other; 
+        for i=1, #G.jokers.cards do
+            if G.jokers.cards[i] == card then
+                city = i
+            elseif G.jokers.cards[i] == context.other_card then
+                other = i
+            end
+        end
+        if city and other and city > other then
+            return {
+                dollars = -card.ability.extra,
+                repetitions = 1,
+            }
+        end
+    end
+end
+
+-------- end city plan --------
+
+-- sol -- 
+
+if next(SMODS.find_mod('Cryptid')) then
+    local sol = SMODS.Joker{
+        key = "sol",
+        loc_txt = {
+            name = "Sol",
+            text = {
+                "All Twilight cards are {C:dark_edition}Negative{}",
+                "and can appear multiple times",
+                "Twilight cards each give",
+                "{X:dark_edition,C:white}^#1#{} Mult when held"
+            },
+        },
+        config = {extra = 1.05},
+	    atlas = "j_flc_jokers",
+        pos = {x = 0, y = 7},
+        soul_pos = {x = 2, y = 7, extra = {x = 1, y = 7}},
+        rarity = "cry_exotic",
+	    cost = 50,
+        discovered = true,
+        blueprint_compat = true,
+        eternal_compat = true,
+        perishable_compat = true,
+    }
+
+    sol.loc_vars = function(self, info_queue, card)
+        return {
+            vars = {
+                card.ability.extra
+            },
+        }
+    end
+
+    sol.draw = function(self, card, layer)
+        if (layer == 'card' or layer == 'both') then
+            card.children.center:draw_shader('booster', nil, card.ARGS.send_to_shader)
+        end
+    end
+
+    sol.calculate = function(self, card, context) 
+        if context.joker_main then
+            return {
+                message = localize({
+                    type = "variable",
+                    key = "a_powmult",
+                    vars = { number_format(card.ability.extra) },
+                }),
+                Emult_mod = card.ability.extra,
+                colour = G.C.DARK_EDITION,
+            }
+        end
+    end
+end
+
+-------- end sol --------
 
 -- scraggly -- 
 
@@ -3330,7 +3777,7 @@ SMODS.Gradient({
 
 local scraggly = SMODS.Joker({
 	key = "scraggly",
-    config = {extra = false},
+    config = {extra = 'pluscard'},
 	pos = {x = 2, y = 4},
     soul_pos = {x = 3, y = 4},
     display_size = {w = 142, h = 95},
@@ -3341,7 +3788,7 @@ local scraggly = SMODS.Joker({
         }
     },
 	rarity = "femtoLabsCollection_scragle_rarity",
-	cost = 914,
+	cost = 9.14,
 	discovered = false,
 	blueprint_compat = false,
 	eternal_compat = true,
@@ -3361,8 +3808,24 @@ femtoLabsCollection.get_clean_centers_table_or_create = function()
     return femtoLabsCollection.clean_center_keys
 end
 
+local scragle_options = {
+    'pluscard',
+    'twodollar',
+    'slurp',
+    'consumablecard'
+}
+
+scraggly.set_ability = function(self, card)
+    card.ability.extra = pseudorandom_element(scragle_options, pseudoseed('flc_scraggly_ability'))
+end
+
 scraggly.calculate = function(self, card, context)
-    if context.blurprint or context.check_enhancement then return end
+
+    if pseudorandom('Hello! I am Scraggly4.') < 1/50 then 
+        ease_background_colour{new_colour = {pseudorandom('hello11'), pseudorandom('hello12'), pseudorandom('hello13'), 1}, special_colour = {pseudorandom('hello21'), pseudorandom('hello22'), pseudorandom('hello23'), 1}, tertiary_colour = {pseudorandom('hello31'), pseudorandom('hello32'), pseudorandom('hello33'), 1}, contrast = pseudorandom('hellocontrast') * 2}
+    end
+
+    if context.blurprint or context.check_enhancement or context.modify_scoring_hand or context.debuff_hand then return end
     if context.reroll_shop then
         local other_shop_card = SMODS.create_card({
             key = pseudorandom_element(femtoLabsCollection.get_clean_centers_table_or_create(), pseudoseed('flc_scraggly')),
@@ -3381,7 +3844,45 @@ scraggly.calculate = function(self, card, context)
         }
     end
 
+    if context.hand_drawn and card.ability.extra == 'consumablecard' then
+        return {
+            message = 'I am Scraggly1.',
+            func = function()
+                G.E_MANAGER:add_event(Event({
+                    trigger = 'after',
+                    delay = 0.2,
+                    func = (function()
+                        local c = pseudorandom_element(G.hand.cards, pseudoseed('flc_scraggly_concard'))
+                        c:set_ability(pseudorandom_element(G.P_CENTER_POOLS.Consumeables, pseudoseed('flc_scraggly_concard322')).key)
+                        c:juice_up()
+                        if c.edition and c.edition.negative then G.hand:change_size(1) end
+                    return true end)}))
+            end
+        }
+    end
+
     if context.setting_blind then
+        if card.ability.extra == 'slurp' then
+
+            local my_pos = nil
+            for i = 1, #G.jokers.cards do
+                if G.jokers.cards[i] == card then my_pos = i; break end
+            end
+
+            if my_pos and G.jokers.cards[my_pos+1] and not self.getting_sliced and not G.jokers.cards[my_pos+1].getting_sliced then 
+                local sliced_card = G.jokers.cards[my_pos+1]
+
+                sliced_card.ability.slurp_tally = sliced_card.ability.slurp_tally and (sliced_card.ability.slurp_tally - 1) or 3
+                sliced_card:juice_up()
+                sliced_card.T.w = sliced_card.T.w * 0.7
+
+                play_sound('femtoLabsCollection_scraggly_slurp')
+
+                ease_hands_played(sliced_card.sell_cost)
+
+                card_eval_status_text(card, 'extra', nil, nil, nil, {message = 'Yum!', colour = G.C.RENTAL})
+            end
+        elseif card.ability.extra == 'pluscard' then
         return {
             message = '+Card!',
             func = function()
@@ -3396,33 +3897,49 @@ scraggly.calculate = function(self, card, context)
                 })
                 card:start_materialize()
                 _area:emplace(card)
-                card.ability.extra_value = (card.ability.extra_value or 0) + 10
                 card:set_cost()
-                create_shop_card_ui(card, card.ability.set, _area)
             end
         }
+        end
     end
 
-    if pseudorandom('Hello! I am Scraggly1.') < 1/150 and not context.ignore_debuff then
+    if card.ability.extra == 'twodollar' and pseudorandom('Hello! I am Scraggly1.') < 1/20 and not context.ignore_debuff then
         return {
             dollars = 2
         }
     end
+
+    if context.end_of_round and context.cardarea == G.jokers then
+        card.ability.extra = pseudorandom_element(scragle_options, pseudoseed('flc_scraggly_ability'))
+    end
 end
 
-scraggly.update = function(self, card, dt)
-    if card.shop_ui_created or (not G.jokers) then return end
-    for k, v in ipairs(G.jokers.cards) do
-        if v.ability.set == 'Enhanced' or v.ability.set == 'Base' then
-            create_shop_card_ui(v)
-            card.shop_ui_created = true
-        end
+local card_initRef = Card.init
+Card.init = function(self, X, Y, W, H, card, center, params)
+    card_initRef(self, X, Y, W, H, card, center, params)
+    if self.set == 'Base' or self.set == 'Enhanced' then
+        self.scraggly_shop_ui = false
+    elseif self.set == 'Joker' then
+        self.scraggly_slurp_found = false
     end
-    for k, v in ipairs(G.consumeables.cards) do
-        if v.ability.set == 'Enhanced' or v.ability.set == 'Base' then
-            create_shop_card_ui(v)
-            card.shop_ui_created = true
+end
+
+local card_updateRef = Card.update
+Card.update = function(self, dt)
+    card_updateRef(self, dt)
+    if (self.ability.set == 'Base' or self.ability.set == 'Enhanced') and (not self.scraggly_shop_ui) and SMODS.find_card('j_femtoLabsCollection_scraggly') and (self.area == G.jokers or self.area == G.consumeables) then
+        self.scraggly_shop_ui = true
+        create_shop_card_ui(self, self.ability.set, self.area)
+    end
+
+    if (self.ability.set == 'Joker') and not self.scraggly_slurp_found then
+        if self.ability.slurp_tally then
+            local times = 4 - self.ability.slurp_tally
+            for i=1, times do
+                self.T.w = self.T.w * 0.7
+            end
         end
+        self.scraggly_slurp_found = true
     end
 end
 

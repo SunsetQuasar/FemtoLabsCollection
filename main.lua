@@ -2,6 +2,7 @@
 ------------MOD CODE -------------------------
 
 SMODS.current_mod.optional_features = { 
+    retrigger_joker = true,
     cardareas = {
         unscored = true,
     },
@@ -51,6 +52,11 @@ SMODS.Atlas({
     px = 34,
     py = 34
 }):register()
+
+SMODS.Sound({
+    key = 'scraggly_slurp',
+    path = 'slurp.ogg'
+})
 
 ----------------------------------------------
 ------------MOD CODE END----------------------
