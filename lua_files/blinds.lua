@@ -82,7 +82,7 @@ bell.after_hand = function(self, card)
             G.GAME.blind.triggered = true
             G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.0, func = function() 
                 if card.config.center ~= G.P_CENTERS.c_base then
-                    card:set_ability(G.P_CENTERS.c_base, nil, true)
+                    card:set_ability('c_base', nil, true)
                     card:juice_up()
                     card.vampired = nil
                 end

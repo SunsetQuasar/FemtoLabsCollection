@@ -33,7 +33,7 @@ Card.init = function(self, X, Y, W, H, card, center, params)
             self.ability.extra = self.ability.extra + 1
         end
 		self.ability.choose = math.min(self.ability.choose + extra_choices, self.ability.extra)
-    elseif self.ability.set == 'm_femtoLabsCollection_twilight' and G.GAME['m_femtolabscollection_twilight_negatives'] and pseudorandom('flc_twilight_negative') < 1/5 then
+    elseif self.ability.set == 'm_femtoLabsCollection_twilight' and ((G.GAME['m_femtolabscollection_twilight_negatives'] and pseudorandom('flc_twilight_negative') < 1/5) or next(SMODS.find_card('j_femtoLabsCollection_sol'))) then
         self:set_edition({negative = true}, true)
     end
 end
@@ -297,7 +297,7 @@ local horizon = SMODS.Consumable({
 })
 
 horizon.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 horizon.can_use = function(self, card)
@@ -355,7 +355,7 @@ local fleeting = SMODS.Consumable({
 })
 
 fleeting.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 fleeting.loc_vars = function(self, info_queue, card)
@@ -399,7 +399,7 @@ moment.loc_vars = function(self, info_queue, card)
 end
 
 moment.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 moment.draw = function(self, card, layer)
@@ -445,7 +445,7 @@ local sampo = SMODS.Consumable({
 })
 
 sampo.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 sampo.draw = function(self, card, layer)
@@ -542,7 +542,7 @@ local theseus = SMODS.Consumable({
 })
 
 theseus.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 theseus.loc_vars = function(self, info_queue, card)
@@ -610,7 +610,7 @@ local light = SMODS.Consumable({
 })
 
 light.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 light.can_use = function(self, card)
@@ -673,7 +673,7 @@ penumbra.can_use = function(self, card)
 end
 
 penumbra.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 penumbra.use = function(self, card, area, copier)
@@ -750,7 +750,7 @@ egress.use = function(self, card)
 end
 
 egress.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 egress.draw = function(self, card, layer)
@@ -821,7 +821,7 @@ decay.use = function(self, card, area, copier)
 end
 
 decay.in_pool = function(self, args)
-    return self:can_use(nil), {allow_duplicates = false}
+    return self:can_use(nil), {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 decay.draw = function(self, card, layer)
@@ -852,7 +852,7 @@ local fulfillment = SMODS.Consumable({
 })
 
 fulfillment.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 fulfillment.can_use = function(self, card)
@@ -916,7 +916,7 @@ local nostalgia = SMODS.Consumable({
 })
 
 nostalgia.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 nostalgia.loc_vars = function(self, info_queue, card)
@@ -963,7 +963,7 @@ presence.loc_vars = function(self, info_queue, card)
 end
 
 presence.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 presence.draw = function(self, card, layer)
@@ -1013,7 +1013,7 @@ life.loc_vars = function(self, info_queue, card)
 end
 
 life.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 life.draw = function(self, card, layer)
@@ -1069,7 +1069,7 @@ view.loc_vars = function(self, info_queue, card)
 end
 
 view.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 view.draw = function(self, card, layer)
@@ -1130,7 +1130,7 @@ forever.loc_vars = function(self, info_queue, card)
 end
 
 forever.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 forever.draw = function(self, card, layer)
@@ -1195,7 +1195,7 @@ aurora.loc_vars = function(self, info_queue, card)
 end
 
 aurora.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 aurora.draw = function(self, card, layer)
@@ -1256,7 +1256,7 @@ reflection.loc_vars = function(self, info_queue, card)
 end
 
 reflection.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 reflection.draw = function(self, card, layer)
@@ -1334,7 +1334,7 @@ treasure.loc_vars = function(self, info_queue, card)
 end
 
 treasure.in_pool = function(self, args)
-    return true, {allow_duplicates = false}
+    return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 treasure.draw = function(self, card, layer)
@@ -1411,7 +1411,7 @@ samsara.can_use = function(self, card)
 end
 
 samsara.in_pool = function(self, args)
-    return G.flc_soldarea and G.flc_soldarea.cards and #G.flc_soldarea.cards > 0, {allow_duplicates = false}
+    return G.flc_soldarea and G.flc_soldarea.cards and #G.flc_soldarea.cards > 0, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 samsara.use = function(self, card, area, copier)

@@ -71,6 +71,10 @@ local HelloIAmScragglyOne = SMODS.Challenge({
             {id = 'joker_slots', value = 2},
         }
     },
+    vouchers = {
+        {id = 'v_planet_merchant'},
+        {id = 'v_tarot_merchant'},
+    },
     jokers = {
         {id = "j_femtoLabsCollection_scraggly", eternal = true},
     },
@@ -85,11 +89,12 @@ local seveneightnineten = SMODS.Challenge({
         name = "Let's Learn Counting"
     },
     rules = {
-        custom = {
-            {id = 'no_shop_jokers'},
-        },
         modifiers = {
         }
+    },
+    vouchers = {
+        {id = 'v_planet_merchant'},
+        {id = 'v_tarot_merchant'},
     },
     jokers = {
         {id = "j_femtoLabsCollection_sevenball", eternal = true},

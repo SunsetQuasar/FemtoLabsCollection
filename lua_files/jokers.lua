@@ -539,7 +539,7 @@ local alloy = SMODS.Joker({
         name = 'Banded Iron Formation',
         text = {
 	"{C:attention}Stone Cards{} each give",
-    "{X:mult,C:white}X#1# when held in hand"
+    "{X:mult,C:white}X#1#{} when held in hand"
         }
     },
 	rarity = 2,
@@ -796,7 +796,7 @@ local rollingstones = SMODS.Joker({
         text = {
 	"{C:attention}Stone Cards{} permanently", 
     "gain {C:mult}+#1#{} Mult when scored",
-    "{C:inactive,s:0.8}Concept: ABuffZucchini"
+    "{C:inactive,s:0.8}Concept: ABuffZucchini, Art: xolimono"
         }
     },
 	rarity = 2,
@@ -3328,8 +3328,8 @@ local sevenball = SMODS.Joker({
             "{C:inactive}(Must have room)",
         }
     },
-	rarity = 3,
-	cost = 8,
+	rarity = 2,
+	cost = 6,
 	discovered = true,
 	blueprint_compat = true,
 	eternal_compat = true,
@@ -3711,7 +3711,7 @@ if next(SMODS.find_mod('Cryptid')) then
                 "{X:dark_edition,C:white}^#1#{} Mult when held"
             },
         },
-        config = {extra = 1.05},
+        config = {extra = 1.15},
 	    atlas = "j_flc_jokers",
         pos = {x = 0, y = 7},
         soul_pos = {x = 2, y = 7, extra = {x = 1, y = 7}},
@@ -3738,7 +3738,7 @@ if next(SMODS.find_mod('Cryptid')) then
     end
 
     sol.calculate = function(self, card, context) 
-        if context.joker_main then
+        if context.other_consumeable and context.other_consumeable.ability.set == 'm_femtoLabsCollection_twilight' then
             return {
                 message = localize({
                     type = "variable",
@@ -3800,8 +3800,7 @@ femtoLabsCollection.get_clean_centers_table_or_create = function()
     if femtoLabsCollection.clean_center_keys then return femtoLabsCollection.clean_center_keys end
     femtoLabsCollection.clean_center_keys = {}
     for _, center in pairs(G.P_CENTERS) do
-        if (not G.P_CENTERS[center.key].set or (G.P_CENTERS[center.key].set and G.P_CENTERS[center.key].set ~= 'Edition'))
-        then
+        if center.set and center.config and (center.set ~= 'Edition') then
             femtoLabsCollection.clean_center_keys[#femtoLabsCollection.clean_center_keys+1] = center.key
         end
     end
@@ -3812,20 +3811,31 @@ local scragle_options = {
     'pluscard',
     'twodollar',
     'slurp',
-    'consumablecard'
+    'consumablecard',
+    'plusjoker'
 }
 
 scraggly.set_ability = function(self, card)
     card.ability.extra = pseudorandom_element(scragle_options, pseudoseed('flc_scraggly_ability'))
 end
 
+local bgRef = ease_background_colour
+ease_background_colour = function(args)
+    if (G.GAME and #SMODS.find_card('j_femtoLabsCollection_scraggly') > 0) then
+        if args.scraggly_allow then
+            bgRef(args)
+        end
+    else bgRef(args) end
+end
+
 scraggly.calculate = function(self, card, context)
 
-    if pseudorandom('Hello! I am Scraggly4.') < 1/50 then 
-        ease_background_colour{new_colour = {pseudorandom('hello11'), pseudorandom('hello12'), pseudorandom('hello13'), 1}, special_colour = {pseudorandom('hello21'), pseudorandom('hello22'), pseudorandom('hello23'), 1}, tertiary_colour = {pseudorandom('hello31'), pseudorandom('hello32'), pseudorandom('hello33'), 1}, contrast = pseudorandom('hellocontrast') * 2}
+    if context.blueprint or context.check_enhancement or context.modify_scoring_hand or context.debuff_hand or context.cry_press then return end
+
+    if pseudorandom('Hello! I am Scraggly4.') < 1/91.4 then 
+        ease_background_colour{scraggly_allow = true, new_colour = {pseudorandom('hello11'), pseudorandom('hello12'), pseudorandom('hello13'), 1}, special_colour = {pseudorandom('hello21'), pseudorandom('hello22'), pseudorandom('hello23'), 1}, tertiary_colour = {pseudorandom('hello31'), pseudorandom('hello32'), pseudorandom('hello33'), 1}, contrast = pseudorandom('hellocontrast') * 2+1}
     end
 
-    if context.blurprint or context.check_enhancement or context.modify_scoring_hand or context.debuff_hand then return end
     if context.reroll_shop then
         local other_shop_card = SMODS.create_card({
             key = pseudorandom_element(femtoLabsCollection.get_clean_centers_table_or_create(), pseudoseed('flc_scraggly')),
@@ -3853,7 +3863,7 @@ scraggly.calculate = function(self, card, context)
                     delay = 0.2,
                     func = (function()
                         local c = pseudorandom_element(G.hand.cards, pseudoseed('flc_scraggly_concard'))
-                        c:set_ability(pseudorandom_element(G.P_CENTER_POOLS.Consumeables, pseudoseed('flc_scraggly_concard322')).key)
+                        c:set_ability(pseudorandom_element(G.P_CENTER_POOLS.Consumeables, pseudoseed('flc_scraggly_concard322')))
                         c:juice_up()
                         if c.edition and c.edition.negative then G.hand:change_size(1) end
                     return true end)}))
@@ -3873,33 +3883,71 @@ scraggly.calculate = function(self, card, context)
                 local sliced_card = G.jokers.cards[my_pos+1]
 
                 sliced_card.ability.slurp_tally = sliced_card.ability.slurp_tally and (sliced_card.ability.slurp_tally - 1) or 3
-                sliced_card:juice_up()
-                sliced_card.T.w = sliced_card.T.w * 0.7
 
-                play_sound('femtoLabsCollection_scraggly_slurp')
+                G.E_MANAGER:add_event(Event({func = function()
+                    sliced_card:juice_up()
+                    play_sound('femtoLabsCollection_scraggly_slurp', (sliced_card.ability.slurp_tally < 1 and 0.6 or 1))
+                    if sliced_card.ability.slurp_tally > 0 then sliced_card.T.w = sliced_card.T.w * 0.7 end
+                    ease_hands_played(sliced_card.sell_cost * (sliced_card.ability.slurp_tally < 1 and 5 or 1))
+                return true end }))
 
-                ease_hands_played(sliced_card.sell_cost)
+                if sliced_card.ability.slurp_tally < 1 then
+                    sliced_card.getting_sliced = true
+                    G.GAME.joker_buffer = G.GAME.joker_buffer - 1
+                    G.E_MANAGER:add_event(Event({func = function()
+                        G.GAME.joker_buffer = 0
+                        card:juice_up(0.8, 0.8)
+                        sliced_card:start_dissolve({HEX("57ecab")}, nil, 1.6)
+                    return true end }))
+                end
 
-                card_eval_status_text(card, 'extra', nil, nil, nil, {message = 'Yum!', colour = G.C.RENTAL})
+                card_eval_status_text(card, 'extra', nil, nil, nil, {message = sliced_card.ability.slurp_tally == 1 and 'Careful!' or 'Yum!', colour = G.C.RENTAL})
             end
         elseif card.ability.extra == 'pluscard' then
-        return {
-            message = '+Card!',
-            func = function()
-                local _area = (pseudorandom('flc_scraglly_pluscard') < 0.5) and G.jokers or G.consumeables
-                local card = SMODS.create_card({
-                    set = 'Enhanced',
-                    area = _area,
-                    skip_materialize = true,
-                    key_append = 'flc_scraglly_pluscard',
-                    edition = poll_edition('flc__scraglly_pluscard', nil, false, true),
-                    seal = pseudorandom_element(G.P_SEALS, pseudoseed('flc__scraglly_pluscard')).key
-                })
-                card:start_materialize()
-                _area:emplace(card)
-                card:set_cost()
-            end
-        }
+            return {
+                message = '+Card!',
+                func = function()
+                    local _area = (pseudorandom('flc_scraglly_pluscard') < 0.5) and G.jokers or G.consumeables
+                    local card = SMODS.create_card({
+                        set = 'Enhanced',
+                        area = _area,
+                        skip_materialize = true,
+                        key_append = 'flc_scraglly_pluscard',
+                        edition = poll_edition('flc__scraglly_pluscard', nil, false, true),
+                        seal = pseudorandom_element(G.P_SEALS, pseudoseed('flc__scraglly_pluscard')).key
+                    })
+                    card:start_materialize()
+                    _area:emplace(card)
+                    card:set_cost()
+                end
+            }
+        elseif card.ability.extra == 'plusjoker' then
+            return {
+                message = '+Joker!',
+                func = function()
+                    for i=1, 3 do
+                        local card = SMODS.create_card({
+                            set = 'Joker',
+                            skip_materialize = true,
+                            key_append = 'flc_scraglly_pluscard',
+                            edition = poll_edition('flc__scraglly_pluscard', nil, false, false),
+                        })
+                        for k, v in pairs(SMODS.Stickers) do
+                            if pseudorandom(pseudoseed('flc_scraggly_plusjoker')) < 1/6 then
+                                v:apply(card, true);
+                            end
+                        end
+
+                        if card.ability.eternal then 
+                            card:set_edition({negative = true})
+                        end
+                        card:add_to_deck()
+                        card:start_materialize()
+                        G.jokers:emplace(card)
+                        card:set_cost()
+                    end
+                end
+            }
         end
     end
 
@@ -3912,6 +3960,7 @@ scraggly.calculate = function(self, card, context)
     if context.end_of_round and context.cardarea == G.jokers then
         card.ability.extra = pseudorandom_element(scragle_options, pseudoseed('flc_scraggly_ability'))
     end
+
 end
 
 local card_initRef = Card.init
