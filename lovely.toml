@@ -27,8 +27,9 @@ local dontdraw = false
 local destroyed_cards = {}
 
 if G.GAME.blind.config.blind.after_hand then
+    local ii = 0
     for k, v in pairs(G.play.cards) do
-        if G.GAME.blind.config.blind:after_hand(v) then
+        if G.GAME.blind.config.blind:after_hand(v, ii) then
             destroyed_cards[#destroyed_cards+1] = v
             dontdraw = true
             if #destroyed_cards == 1 then
@@ -48,6 +49,7 @@ if G.GAME.blind.config.blind.after_hand then
                 return true
             end)}))
         end
+        ii = ii + 1
     end
     G.GAME.blind.triggered = true
     for i = 1, #G.jokers.cards do

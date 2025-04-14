@@ -72,7 +72,7 @@ local bell = SMODS.Blind{
 	}
 }
 
-bell.after_hand = function(self, card)
+bell.after_hand = function(self, card, id)
     if G.GAME.facing_blind and not G.GAME.blind.disabled then
         local do_debuff = false
         do_debuff = (card.config.center ~= G.P_CENTERS.c_base) or card.edition or card.seal or card.ability.perma_bonus or card.ability.perma_mult
@@ -100,7 +100,44 @@ bell.after_hand = function(self, card)
                 if card.ability.perma_mult then
                     card.ability.perma_mult = 0
                 end
-                play_sound('cancel', 0.7 + 0.05, 0.7) 
+
+				if card.ability.perma_x_mult then
+                    card.ability.perma_x_mult = 0
+                end
+
+				if card.ability.perma_x_chips then
+                    card.ability.perma_x_chips = 0
+                end
+
+                if card.ability.perma_h_chips then
+                    card.ability.perma_h_chips = 0
+                end
+
+                if card.ability.perma_h_mult then
+                    card.ability.perma_h_mult = 0
+                end
+
+				if card.ability.perma_h_x_mult then
+                    card.ability.perma_h_x_mult = 0
+                end
+
+				if card.ability.perma_h_x_chips then
+                    card.ability.perma_h_x_chips = 0
+                end
+
+				if card.ability.perma_p_dollars then
+                    card.ability.perma_p_dollars = 0
+                end
+
+				if card.ability.perma_h_dollars then
+                    card.ability.perma_h_dollars = 0
+                end
+
+				for k, v in pairs(SMODS.Stickers) do
+					if card.ability[k] then card.ability[k]:apply(card, false) end
+				end
+
+                play_sound('cancel', 0.7 + 0.05 * id, 0.7) 
                 SMODS.juice_up_blind()
                 return true end })) 
         end

@@ -3697,6 +3697,69 @@ end
 
 -------- end city plan --------
 
+-- common value -- 
+
+local commonvalue = SMODS.Joker({
+	key = "commonvalue",
+    config = {extra = {mult = 2, chips = 15, xmult = 1.2, dollars = 1, mode = 0}},
+	pos = {x = 5, y = 6},
+	loc_txt = { 
+        name = 'Common Value',
+        text = {
+            "{C:chips}Common{} Jokers each",
+            "give {C:chips}#1#{C:mult}#2#{C:money}#3#{}#4#",
+            "{C:inactive}(Bonus changes every hand)",
+        }
+    },
+	rarity = 2,
+	cost = 7,
+	discovered = true,
+	blueprint_compat = true,
+	eternal_compat = true,
+	perishable_compat = true,
+	atlas = "j_flc_jokers"
+})
+
+commonvalue.set_ability = function(self, card)
+    local it = {0, 1, 2}
+    table.remove(it, card.ability.extra.mode)
+    card.ability.extra.mode = pseudorandom_element(it, pseudoseed("flc_commonvalue"))
+end
+
+local name = {" Chips", " Mult", ""}
+
+commonvalue.loc_vars = function(self, info_queue, card)
+    return {
+        vars = {
+            card.ability.extra.mode == 0 and "+"..card.ability.extra.chips or "",
+            card.ability.extra.mode == 1 and "+"..card.ability.extra.mult or "",
+            card.ability.extra.mode == 2 and "$"..card.ability.extra.dollars or "",
+            name[card.ability.extra.mode+1]
+        }
+    }
+end
+
+commonvalue.calculate = function(self, card, context)
+    if context.other_joker and context.other_joker.config.center.rarity == 1 then 
+        local ret = {}
+        if card.ability.extra.mode == 0 then ret.chips = card.ability.extra.chips end
+        if card.ability.extra.mode == 1 then ret.mult = card.ability.extra.mult end
+        if card.ability.extra.mode == 2 then ret.dollars = card.ability.extra.dollars end
+        return ret
+    end
+    if context.after then
+        local it = {0, 1, 2}
+        table.remove(it, card.ability.extra.mode)
+        card.ability.extra.mode = pseudorandom_element(it, pseudoseed("flc_commonvalue"))
+        return {
+            message = localize('k_reset'),
+            colour = card.ability.extra.mode == 0 and G.C.CHIPS or card.ability.extra.mode == 1 and G.C.MULT or G.C.MONEY
+        }
+    end
+end
+
+-------- end common value --------
+
 -- sol -- 
 
 if next(SMODS.find_mod('Cryptid')) then

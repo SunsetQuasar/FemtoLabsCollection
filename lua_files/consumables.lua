@@ -1455,3 +1455,60 @@ Card.sell_card = function(self)
     G.flc_soldarea:emplace(card)
 end
 
+if next(SMODS.find_mod('RiftRaft')) then
+    RIFTRAFT.RiftCard{
+        key = "cadence",
+        loc_txt = {
+            name = "Cadence",
+            text = {
+                "Add {C:attention}#1#{} random {V:1}Twilight{}",
+                "{V:1}Cards{} to the {C:riftraft_void}Void{}",
+            }
+        },
+        loc_vars = function(self, info_queue, card)
+            return {
+                vars = {
+                    card.ability.extra.amount,
+                    colours = {
+                        flc_twilight_colour
+                    }
+                }
+            }
+        end,
+        config = {
+            extra = {amount = 3},
+        },
+        atlas = "c_flc_twilight",
+        pos = {x = 9, y = 1},
+        cost = 1,
+        can_use = function(self, card)
+            return true
+        end,
+        use = function(self, card, area)
+            local added = {}
+            for i=1, card.ability.extra.amount do
+                G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.2, func = function()
+                    play_sound('timpani')
+                    -- local new_card = create_card('Code', G.riftraft_rifthand, nil, nil, nil, nil, nil, 'null')
+                    local new_card = SMODS.create_card{set = 'm_femtoLabsCollection_twilight', area = G.riftraft_rifthand, key_append = 'null', discover = true}
+                    new_card:set_edition({negative = true}, true, true)
+                    G.riftraft_rifthand:emplace(new_card)
+                    card:juice_up(0.3, 0.5)
+                    table.insert(added, new_card)
+                    return true
+                end}))
+            end
+            G.E_MANAGER:add_event(Event({trigger = 'immediate', func = function()
+                SMODS.calculate_context({add_to_void = true, added = added})
+                return true
+            end}))
+            if not RIFTRAFT.in_void_pack() then
+                G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.5, func = function()
+                    RIFTRAFT.draw_from_rift_to_void()
+                    return true
+                end}))
+            end
+        end,
+    }
+end
+
