@@ -102,9 +102,10 @@ local slatedeck = SMODS.Back({
 	loc_txt = {
         name = "Slate Deck",
         text = {
-            "{C:attention}-2{} Joker slots",
-			"Newly created cards may",
-			"be {C:attention}Sealed {T:m_stone}Stone Cards"
+            "{C:attention}-2{} Joker slots, {C:attention}15{} random",
+			"cards are {C:attention}{T:m_stone}Stone Cards",
+			"Newly created cards are",
+			"always {C:attention}Sealed {T:m_stone}Stone Cards"
         }
     },
     atlas= "b_flc_decks"
@@ -114,11 +115,11 @@ slatedeck.apply = function(self, back)
 	G.GAME.starting_params.joker_slots = 3
 end
 
-local createRef = SMODS.create_card
+local createRef = create_card
 
-function SMODS.create_card(t)
+function create_card(_type, area, legendary, _rarity, skip_materialize, soulable, forced_key, key_append)
 
-	local ret = createRef(t)
+	local ret = createRef(_type, area, legendary, _rarity, skip_materialize, soulable, forced_key, key_append)
 
 	-- foil deck part
 
@@ -128,17 +129,55 @@ function SMODS.create_card(t)
 
 	-- slate deck
 
-	if (t.set == 'Base' or t.set == 'Enhanced') and G.GAME.starting_params.flc_slatedeck then
-		if pseudorandom('flc_slatedeck2') < 0.5 then
+	if G.GAME.starting_params.flc_slatedeck and _type and type(_type) ~= 'table' and (_type == 'Base' or _type == 'Enhanced') then
 			local silent = not not ret.seal
 			ret:set_ability(G.P_CENTERS['m_stone'])
 			--ret:set_edition(nil, true)
 			ret:set_seal(pseudorandom_element(G.P_CENTER_POOLS['Seal'], pseudoseed('flc_vol_sealpool')).key, silent)
-		end
 	end
 
 	return ret
 end
+
+local createRef2 = SMODS.create_card
+
+function SMODS.create_card(t)
+
+	local ret = createRef2(t)
+
+	-- foil deck part
+
+	if G.GAME.starting_params.flc_foildeck and ret.ability.set == 'Joker' and not ret.edition.foil then
+		ret:set_edition({foil = true}, true)
+	end
+
+	-- slate deck
+
+	if (t.set == 'Base' or t.set == 'Enhanced') and G.GAME.starting_params.flc_slatedeck and not (SMODS.has_enhancement(ret, 'm_stone') and ret.seal) then
+			local silent = not not ret.seal
+			ret:set_ability(G.P_CENTERS['m_stone'])
+			--ret:set_edition(nil, true)
+			ret:set_seal(pseudorandom_element(G.P_CENTER_POOLS['Seal'], pseudoseed('flc_vol_sealpool')).key, silent)
+	end
+
+	return ret
+end
+
+local create_playingRef = create_playing_card
+create_playing_card = function(card_init, area, skip_materialize, silent, colours, skip_emplace)
+	if G.GAME.starting_params.flc_slatedeck then
+		card_init.center = G.P_CENTERS['m_stone']
+	end
+	local ret = create_playingRef(card_init, area, skip_materialize, silent, colours, skip_emplace)
+	if G.GAME.starting_params.flc_slatedeck then
+		local silent = not not ret.seal
+		ret:set_ability(G.P_CENTERS['m_stone'])
+		--ret:set_edition(nil, true)
+		ret:set_seal(pseudorandom_element(G.P_CENTER_POOLS['Seal'], pseudoseed('flc_vol_sealpool')).key, silent)
+	end
+	return ret
+end
+
 
 local copyRef = copy_card
 
@@ -148,12 +187,10 @@ function copy_card(other, new_card, card_scale, playing_card, strip_edition)
 		ret:set_edition({foil = true}, not ret.edition)
 	end
 	if (other.ability.type == 'Base' or other.ability.type == 'Enhanced') and G.GAME.starting_params.flc_slatedeck then
-		if pseudorandom('flc_slatedeck3') < 0.5 then
 			local silent = not not ret.seal
 			ret:set_ability(G.P_CENTERS['m_stone'])
 			--ret:set_edition(nil, true)
 			ret:set_seal(pseudorandom_element(G.P_CENTER_POOLS['Seal'], pseudoseed('flc_vol_sealpool')).key, silent)
-		end
 	end
 	return ret
 end

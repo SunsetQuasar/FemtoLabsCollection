@@ -58,5 +58,7 @@ SMODS.Sound({
     path = 'slurp.ogg'
 })
 
+to_big = to_big or function(num) return num end
+
 ----------------------------------------------
 ------------MOD CODE END----------------------

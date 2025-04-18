@@ -146,7 +146,7 @@ local bronze_seal = SMODS.Seal({
         name = 'Bronze Seal',
         label = 'Bronze Seal',
         text = {
-            "Creates a {V:1}Twilight{} card",
+            "Creates a {C:femtolabscollection_twilight}Twilight{} card",
             "when {C:attention}Enhanced",
             "{C:inactive}(Must have room)"
         }
@@ -154,15 +154,6 @@ local bronze_seal = SMODS.Seal({
     badge_colour = HEX('B87E5E'),
     atlas = 'm_flc_enhancements', 
     pos = { x = 2, y = 0 },
-    loc_vars = function(self, info_queue, seal)
-        return {
-            vars = {
-                colours = {
-                    flc_twilight_colour
-                }
-            }
-        }
-    end,
     draw = function(self, card, layer)
         G.shared_seals[card.seal].role.draw_major = card
         G.shared_seals[card.seal]:draw_shader('dissolve', nil, nil, nil, card.children.center)

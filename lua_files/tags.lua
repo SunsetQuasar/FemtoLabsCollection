@@ -4,7 +4,7 @@ local sunset_tag = SMODS.Tag({
         name = "Sunset Tag",
         text = {
             "Gives a free",
-            "{V:1}Mega Nightfall Pack",
+            "{C:femtolabscollection_twilight}Mega Nightfall Pack",
         }
     },
     config = {},
@@ -16,13 +16,6 @@ local sunset_tag = SMODS.Tag({
 
 sunset_tag.loc_vars = function(self, info_queue, card)
     info_queue[#info_queue + 1] = G.P_CENTERS['p_femtoLabsCollection_twilight_mega']
-    return {
-        vars = {
-            colours = {
-                flc_twilight_colour
-            }
-        }
-    }
 end
 
 sunset_tag.apply = function(self, tag, context)
@@ -80,6 +73,90 @@ summon_tag.apply = function(self, tag, context)
             play_sound('negative', 1.5, 0.6)
             return true end)
         
+        tag.triggered = true
+    end
+end
+
+local zucchini_tag = SMODS.Tag({
+    key = "zucchini",
+    loc_txt = {
+        name = "Zucchini Tag",
+        text = {
+            "Creates a {C:dark_edition}Negative",
+            "{C:attention}Buff Zucchini{} after",
+            "the next {C:attention}Blind",
+        }
+    },
+    config = {extra = 2},
+    min_ante = 2,
+    atlas = 'tag_flc_tags', 
+    pos = { x = 2, y = 0 },
+    discovered = true
+})
+
+zucchini_tag.loc_vars = function(self, info_queue, card)
+    info_queue[#info_queue + 1] = G.P_CENTERS['j_femtoLabsCollection_zucchini']
+end
+
+zucchini_tag.apply = function(self, tag, context)
+    if context.type == 'eval' then
+        tag:yep('+', G.C.FILTER, function() 
+            for i=1, 1 do
+                local card = SMODS.create_card({
+                    key = 'j_femtoLabsCollection_zucchini',
+                    skip_materialize = true,
+                    key_append = 'flc_summon_tag',
+                    no_edition = true,
+                })
+                card:start_materialize()
+                card:add_to_deck()
+                card:set_edition({negative = true})
+                G.jokers:emplace(card)
+                card:juice_up(1, 0.5)
+            end
+            return true end)
+        tag.triggered = true
+    end
+end
+
+local goose_tag = SMODS.Tag({
+    key = "goose",
+    loc_txt = {
+        name = "Goose Tag",
+        text = {
+            "Creates a {C:dark_edition}Negative",
+            "{C:attention}Gooseberries{} after",
+            "the next {C:attention}Blind",
+        }
+    },
+    config = {extra = 2},
+    min_ante = 2,
+    atlas = 'tag_flc_tags', 
+    pos = { x = 3, y = 0 },
+    discovered = true
+})
+
+goose_tag.loc_vars = function(self, info_queue, card)
+    info_queue[#info_queue + 1] = G.P_CENTERS['j_femtoLabsCollection_gooseberry']
+end
+
+goose_tag.apply = function(self, tag, context)
+    if context.type == 'eval' then
+        tag:yep('+', G.C.FILTER, function() 
+            for i=1, 1 do
+                local card = SMODS.create_card({
+                    key = 'j_femtoLabsCollection_gooseberry',
+                    skip_materialize = true,
+                    key_append = 'flc_summon_tag',
+                    no_edition = true,
+                })
+                card:start_materialize()
+                card:add_to_deck()
+                card:set_edition({negative = true})
+                G.jokers:emplace(card)
+                card:juice_up(1, 0.5)
+            end
+            return true end)
         tag.triggered = true
     end
 end

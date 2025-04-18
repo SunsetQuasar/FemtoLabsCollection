@@ -1,8 +1,8 @@
-local twilight_cards = SMODS.ConsumableType({
+femtoLabsCollection.twilight_cards = SMODS.ConsumableType({
     key = "m_femtoLabsCollection_twilight",
     primary_colour = HEX('715D91'),
     secondary_colour = HEX('AA9186'),
-    default = "c_femtoLabsCollection_horizon",
+    default = "c_femtoLabsCollection_aurora",
     loc_txt = {
         name = 'Twilight',
         collection = 'Twilight Cards', 
@@ -15,7 +15,13 @@ local twilight_cards = SMODS.ConsumableType({
     shop_rate = 0
 })
 
-flc_twilight_colour = twilight_cards.secondary_colour
+SMODS.Gradient({
+    key = "twilight",
+    colours = {
+        femtoLabsCollection.twilight_cards.secondary_colour,
+        femtoLabsCollection.twilight_cards.secondary_colour,
+    },
+})
 
 -------------------
 
@@ -50,6 +56,7 @@ Card.open = function(self)
 end
 
 function ease_bg_nightfall()
+    ease_colour(G.C.DYN_UI.MAIN, HEX('BC6F6F'))
     ease_background_colour{new_colour = HEX('895F52'), special_colour = darken(G.C.BLACK, 0.6), tertiary_colour = HEX('513B4C'), contrast = 2}
 end
 
@@ -85,7 +92,7 @@ local std1 = SMODS.Booster({
         group_name = "Nightfall Pack",
         text = {
             "Choose {C:attention}#1#{} of up to",
-            "{C:attention}#2#{V:1} Twilight{} cards to be",
+            "{C:attention}#2#{C:femtolabscollection_twilight} Twilight{} cards to be",
             "added to your {C:attention}consumables",
             "{C:inactive}(Must have room)",
         }
@@ -107,9 +114,6 @@ std1.loc_vars = function(self, loc_vars, card)
         vars = {
             card.ability.choose,
             card.ability.extra,
-            colours = {
-                flc_twilight_colour
-            }
         }
     }
 end
@@ -135,7 +139,7 @@ local std2 = SMODS.Booster({
         group_name = "Nightfall Pack",
         text = {
             "Choose {C:attention}#1#{} of up to",
-            "{C:attention}#2#{V:1} Twilight{} cards to be",
+            "{C:attention}#2#{C:femtolabscollection_twilight} Twilight{} cards to be",
             "added to your {C:attention}consumables",
             "{C:inactive}(Must have room)",
         }
@@ -157,9 +161,6 @@ std2.loc_vars = function(self, loc_vars, card)
         vars = {
             card.ability.choose,
             card.ability.extra,
-            colours = {
-                flc_twilight_colour
-            }
         }
     }
 end
@@ -185,7 +186,7 @@ local jumbo = SMODS.Booster({
         group_name = "Nightfall Pack",
         text = {
             "Choose {C:attention}#1#{} of up to",
-            "{C:attention}#2#{V:1} Twilight{} cards to be",
+            "{C:attention}#2#{C:femtolabscollection_twilight} Twilight{} cards to be",
             "added to your {C:attention}consumables",
             "{C:inactive}(Must have room)",
         }
@@ -207,9 +208,6 @@ jumbo.loc_vars = function(self, loc_vars, card)
         vars = {
             card.ability.choose,
             card.ability.extra,
-            colours = {
-                flc_twilight_colour
-            }
         }
     }
 end
@@ -235,7 +233,7 @@ local mega = SMODS.Booster({
         group_name = "Nightfall Pack",
         text = {
             "Choose {C:attention}#1#{} of up to",
-            "{C:attention}#2#{V:1} Twilight{} cards to be",
+            "{C:attention}#2#{C:femtolabscollection_twilight} Twilight{} cards to be",
             "added to your {C:attention}consumables",
             "{C:inactive}(Must have room)",
         }
@@ -257,9 +255,6 @@ mega.loc_vars = function(self, loc_vars, card)
         vars = {
             card.ability.choose,
             card.ability.extra,
-            colours = {
-                flc_twilight_colour
-            }
         }
     }
 end
@@ -276,24 +271,57 @@ mega.particles = function(self)
     particles_nightfall()
 end
 
+local buysell = G.UIDEF.use_and_sell_buttons
+
+function G.UIDEF.use_and_sell_buttons(card)
+    local old_sel = booster_obj and booster_obj.select_card
+    if card.ability.set == "m_femtoLabsCollection_twilight" then
+        if booster_obj then booster_obj.select_card = 'consumeables' end
+    end
+    local ret = buysell(card)
+    if booster_obj then booster_obj.select_card = old_sel end
+    return ret
+end
+
+local selectableRef = Card.selectable_from_pack
+
+function Card.selectable_from_pack(card, pack)
+    if card.ability.set == "m_femtoLabsCollection_twilight" then return 'consumeables' else return selectableRef(card, pack) end
+end
+
+local useRef = G.FUNCS.use_card
+G.FUNCS.use_card = function(e, mute, nosave)
+    local old_sel = booster_obj and booster_obj.select_card
+    if e.config.ref_table.ability.set == "m_femtoLabsCollection_twilight" then
+        if booster_obj then booster_obj.select_card = 'consumeables' end
+    end
+    useRef(e, mute, nosave)
+    if booster_obj then booster_obj.select_card = old_sel end
+end
+
+femtoLabsCollection.TwilightCard = SMODS.Consumable:extend {
+    set = "m_femtoLabsCollection_twilight",
+	atlas = "femtoLabsCollection_c_flc_twilight",
+    unlocked = true,
+	discovered = true,
+}
+
 -- horizon
 
-local horizon = SMODS.Consumable({
+local horizon = femtoLabsCollection.TwilightCard({
     key = "horizon",
-    set = "m_femtoLabsCollection_twilight",
-    config = {extra = {prob_success = 4}},
+    config = {extra = 2},
 	pos = {x = 0, y = 0},
 	loc_txt = {
         name = 'Horizon',
         text = {
-    "Randomizes all {C:attention}Consumables",
-    "in your possession"
+            "Creates the last",
+            "{C:femtolabscollection_twilight}Twilight{} or {C:spectral}Spectral{} card",
+            "used during this run",
+            "{s:0.8,C:femtolabscollection_twilight}Horizon{s:0.8} excluded",
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 horizon.in_pool = function(self, args)
@@ -301,29 +329,39 @@ horizon.in_pool = function(self, args)
 end
 
 horizon.can_use = function(self, card)
-    return G.consumeables and G.consumeables.cards and #G.consumeables.cards-1 > 0
+    return (G.GAME.flc_last_twilight_spectral ~= nil and G.GAME.flc_last_twilight_spectral ~= 'c_femtoLabsCollection_horizon' and G.P_CENTERS[G.GAME.flc_last_twilight_spectral] and not G.P_CENTERS[G.GAME.flc_last_twilight_spectral].hidden)
 end
 
 horizon.use = function(self, card, area, copier)
-    for i=#G.consumeables.cards, 1, -1 do
-        G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4, func = function()
-            card:juice_up()
-            local _set = G.consumeables.cards[i].ability.set
-            local ed = G.consumeables.cards[i].edition
-            local new = SMODS.create_card({
-                set = _set,
-                skip_materialize = true,
-                key_append = 'flc_horizon'
-            })
-            local percent = 0.85 + (i-0.999)/(#G.consumeables.cards-0.998)*0.3
-            play_sound('tarot2', percent, 0.6);
-            G.consumeables.cards[i]:remove_from_deck()
-            G.consumeables.cards[i]:remove()
-            new:add_to_deck()
-            new:set_edition(ed, nil, true)
-            G.consumeables:emplace(new)
-            new:juice_up(0.3, 0.3)
-            return true end }))
+    G.E_MANAGER:add_event(Event({trigger = 'after', delay = 0.4, func = function()
+        play_sound('timpani')
+        local new_card = SMODS.create_card{key = G.GAME.flc_last_twilight_spectral, key_append = 'flc_horizon'}
+        new_card:add_to_deck()
+        G.consumeables:emplace(new_card)
+        card:juice_up(0.3, 0.5)
+        return true
+    end}))
+    delay(0.6)
+end
+
+horizon.generate_ui = function(self, info_queue, card, desc_nodes, specific_vars, full_UI_table)
+    femtoLabsCollection.TwilightCard.generate_ui(self, info_queue, card, desc_nodes, specific_vars, full_UI_table)
+
+    local twi_spe = G.GAME.flc_last_twilight_spectral and G.P_CENTERS[G.GAME.flc_last_twilight_spectral] or nil
+    local last_twi_spe = twi_spe and localize{type = 'name_text', key = twi_spe.key, set = twi_spe.set} or localize('k_none')
+    if G.GAME.flc_last_twilight_spectral == 'c_femtoLabsCollection_horizon' or (twi_spe and twi_spe.hidden) then twi_spe = nil end
+    local colour = not twi_spe and G.C.RED or (twi_spe.set == 'Spectral' and G.C.SECONDARY_SET.Spectral or femtoLabsCollection.twilight_cards.secondary_colour)
+
+    table.insert(desc_nodes, {
+        {n=G.UIT.C, config={align = "bm", padding = 0.02}, nodes={
+            {n=G.UIT.C, config={align = "m", colour = colour, r = 0.05, padding = 0.05}, nodes={
+                {n=G.UIT.T, config={text = ' '..last_twi_spe..' ', colour = G.C.UI.TEXT_LIGHT, scale = 0.3, shadow = true}},
+            }}
+        }}
+    })
+
+    if twi_spe then
+        table.insert(info_queue, twi_spe)
     end
 end
 
@@ -335,9 +373,8 @@ end
 
 -- fleeting
 
-local fleeting = SMODS.Consumable({
+local fleeting = femtoLabsCollection.TwilightCard({
     key = "fleeting",
-    set = "m_femtoLabsCollection_twilight",
     config = {mod_conv = 'm_femtoLabsCollection_ice_card', max_highlighted = 2},
 	pos = {x = 1, y = 0},
 	loc_txt = {
@@ -349,9 +386,6 @@ local fleeting = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 fleeting.in_pool = function(self, args)
@@ -376,9 +410,8 @@ end
 
 -- moment
 
-local moment = SMODS.Consumable({
+local moment = femtoLabsCollection.TwilightCard({
     key = "moment",
-    set = "m_femtoLabsCollection_twilight",
     config = {extra = {prob_success = 4}},
 	pos = {x = 2, y = 0},
 	loc_txt = {
@@ -389,9 +422,6 @@ local moment = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 moment.loc_vars = function(self, info_queue, card)
@@ -425,9 +455,8 @@ end
 
 -- sampo
 
-local sampo = SMODS.Consumable({
+local sampo = femtoLabsCollection.TwilightCard({
     key = "sampo",
-    set = "m_femtoLabsCollection_twilight",
     config = {extra = {destroy = 1, gold = 4}},
 	pos = {x = 3, y = 0},
 	loc_txt = {
@@ -439,9 +468,6 @@ local sampo = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 sampo.in_pool = function(self, args)
@@ -522,9 +548,8 @@ end
 
 -- theseus
 
-local theseus = SMODS.Consumable({
+local theseus = femtoLabsCollection.TwilightCard({
     key = "theseus",
-    set = "m_femtoLabsCollection_twilight",
     config = {extra = {mult = 3, chips = 15}},
 	pos = {x = 4, y = 0},
 	loc_txt = {
@@ -536,9 +561,6 @@ local theseus = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 theseus.in_pool = function(self, args)
@@ -590,9 +612,8 @@ end
 
 -- light
 
-local light = SMODS.Consumable({
+local light = femtoLabsCollection.TwilightCard({
     key = "light",
-    set = "m_femtoLabsCollection_twilight",
     config = {},
 	pos = {x = 5, y = 0},
 	loc_txt = {
@@ -604,9 +625,6 @@ local light = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 light.in_pool = function(self, args)
@@ -641,9 +659,8 @@ end
 
 -- penumbra
 
-local penumbra = SMODS.Consumable({
+local penumbra = femtoLabsCollection.TwilightCard({
     key = "penumbra",
-    set = "m_femtoLabsCollection_twilight",
     config = {},
 	pos = {x = 6, y = 0},
 	loc_txt = {
@@ -655,9 +672,6 @@ local penumbra = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 penumbra.loc_vars = function(self, info_queue, card)
@@ -703,23 +717,19 @@ end
 
 -- egress
 
-local egress = SMODS.Consumable({
+local egress = femtoLabsCollection.TwilightCard({
     key = "egress",
-    set = "m_femtoLabsCollection_twilight",
     config = {extra = 'femtoLabsCollection_bronze_seal', max_highlighted = 1},
 	pos = {x = 7, y = 0},
 	loc_txt = {
         name = 'Egress',
         text = {
-    "Add a {V:1}Bronze Seal{}",
+    "Add a {C:femtolabscollection_twilight}Bronze Seal{}",
     "to {C:attention}#1#{} selected",
     "card in your hand"
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 egress.loc_vars = function(self, info_queue, card)
@@ -727,9 +737,6 @@ egress.loc_vars = function(self, info_queue, card)
     return {
         vars = {
             card.ability.max_highlighted,
-            colours = {
-                flc_twilight_colour
-            }
         }
     }
 end
@@ -761,9 +768,8 @@ end
 
 -- decay
 
-local decay = SMODS.Consumable({
+local decay = femtoLabsCollection.TwilightCard({
     key = "decay",
-    set = "m_femtoLabsCollection_twilight",
     config = {extra = 25},
 	pos = {x = 8, y = 0},
 	loc_txt = {
@@ -776,9 +782,6 @@ local decay = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 decay.loc_vars = function(self, info_queue, card)
@@ -832,60 +835,70 @@ end
 
 -- fulfillment
 
-local fulfillment = SMODS.Consumable({
+local fulfillment = femtoLabsCollection.TwilightCard({
     key = "fulfillment",
-    set = "m_femtoLabsCollection_twilight",
-    config = {extra = {prob_success = 4}},
+    config = {},
 	pos = {x = 9, y = 0},
 	loc_txt = {
         name = 'Fulfillment',
         text = {
-    "Destroys a selected {C:joker}Joker{}, creates a",
-    "random {C:joker}Joker{} of a superior {C:attention}Rarity",
-    "{C:inactive,s:0.8}(Cannot create {C:legendary,E:1,s:0.8}Legendary{C:inactive,s:0.8} Jokers from {C:red,s:0.8}Rare{C:inactive,s:0.8} Jokers)"
+            "Progress a Joker's {C:dark_edition}Edition",
+            "{C:inactive}(Using Collection order)"
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
+
+fulfillment.loc_vars = function(self, info_queue, card)
+end
 
 fulfillment.in_pool = function(self, args)
     return true, {allow_duplicates = next(SMODS.find_card('j_femtoLabsCollection_sol'))}
 end
 
 fulfillment.can_use = function(self, card)
-    return G.jokers and G.jokers.highlighted and #G.jokers.highlighted > 0 and not G.jokers.highlighted[1].ability.eternal and not (G.jokers.highlighted[1].edition and G.jokers.highlighted[1].edition.negative)
+
+    local joker = G.jokers and G.jokers.highlighted[1] or nil
+    if not joker or #G.jokers.highlighted ~= 1 then return false end
+
+    local edition_id = 1;
+
+    for i, ed in ipairs(G.P_CENTER_POOLS.Edition) do
+        if not joker.edition then break end
+        if joker.edition.key == ed.key then
+            edition_id = i
+            break
+        end
+    end
+
+    return edition_id ~= #G.P_CENTER_POOLS.Edition
 end
 
 fulfillment.use = function(self, card, area, copier)
 
-    local _rarity = G.jokers.highlighted[1].config.center.rarity
+    local joker = G.jokers.highlighted[1]
+    if not joker then return end
 
-    local rarity_new = 0
+    local edition_id = 1;
 
-    if _rarity == 1 then
-        rarity_new = 0.8
-    else
-        rarity_new = 1
+    for i, ed in ipairs(G.P_CENTER_POOLS.Edition) do
+        if not joker.edition then break end
+        if joker.edition.key == ed.key then
+            edition_id = i
+            break
+        end
     end
 
-    G.E_MANAGER:add_event(Event({trigger = 'before', delay = 0.75, func = function()
-        G.jokers.highlighted[1]:start_dissolve(nil, true)
-        return true end }))
-    G.E_MANAGER:add_event(Event({trigger = 'before', delay = 0.4, func = function()
-        local card = SMODS.create_card({
-            set = 'Joker',
-            rarity = rarity_new,
-            skip_materialize = true,
-            key_append = 'flc_fulfill',
-            legendary = _rarity == 4
-        })
-        card:start_materialize()
-        card:add_to_deck()
-        G.jokers:emplace(card)
-        return true end }))
+    if G.P_CENTER_POOLS.Edition[edition_id + 1].key == 'e_ccc_mirrored' then edition_id = edition_id + 1 end -- skip mirrored
+
+    G.E_MANAGER:add_event(Event({
+        func = (function()
+            joker:set_edition(G.P_CENTER_POOLS.Edition[edition_id + 1].key)
+            return true
+        end)
+    }))
+
+    delay(0.4)
 end
 
 fulfillment.draw = function(self, card, layer)
@@ -896,9 +909,8 @@ end
 
 -- nostalgia
 
-local nostalgia = SMODS.Consumable({
+local nostalgia = femtoLabsCollection.TwilightCard({
     key = "nostalgia",
-    set = "m_femtoLabsCollection_twilight",
     config = {mod_conv = 'm_femtoLabsCollection_ivory_card', max_highlighted = 2},
 	pos = {x = 0, y = 1},
 	loc_txt = {
@@ -910,9 +922,6 @@ local nostalgia = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 nostalgia.in_pool = function(self, args)
@@ -937,9 +946,8 @@ end
 
 -- presence
 
-local presence = SMODS.Consumable({
+local presence = femtoLabsCollection.TwilightCard({
     key = "presence",
-    set = "m_femtoLabsCollection_twilight",
     config = {},
 	pos = {x = 2, y = 1},
 	loc_txt = {
@@ -950,9 +958,6 @@ local presence = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 presence.loc_vars = function(self, info_queue, card)
@@ -990,9 +995,8 @@ end
 
 -- life
 
-local life = SMODS.Consumable({
+local life = femtoLabsCollection.TwilightCard({
     key = "life",
-    set = "m_femtoLabsCollection_twilight",
     config = {},
 	pos = {x = 3, y = 1},
 	loc_txt = {
@@ -1003,9 +1007,6 @@ local life = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 life.loc_vars = function(self, info_queue, card)
@@ -1043,9 +1044,8 @@ end
 
 -- view
 
-local view = SMODS.Consumable({
+local view = femtoLabsCollection.TwilightCard({
     key = "view",
-    set = "m_femtoLabsCollection_twilight",
     config = {},
 	pos = {x = 7, y = 1},
 	loc_txt = {
@@ -1057,9 +1057,6 @@ local view = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 view.loc_vars = function(self, info_queue, card)
@@ -1100,9 +1097,8 @@ end
 
 -- forever
 
-local forever = SMODS.Consumable({
+local forever = femtoLabsCollection.TwilightCard({
     key = "forever",
-    set = "m_femtoLabsCollection_twilight",
     config = {},
 	pos = {x = 4, y = 1},
 	loc_txt = {
@@ -1113,9 +1109,6 @@ local forever = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 forever.loc_vars = function(self, info_queue, card)
@@ -1166,9 +1159,8 @@ end
 
 -- aurora
 
-local aurora = SMODS.Consumable({
+local aurora = femtoLabsCollection.TwilightCard({
     key = "aurora",
-    set = "m_femtoLabsCollection_twilight",
     config = {extra = 2},
 	pos = {x = 5, y = 1},
 	loc_txt = {
@@ -1181,9 +1173,6 @@ local aurora = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 aurora.loc_vars = function(self, info_queue, card)
@@ -1225,9 +1214,8 @@ end
 
 -- reflection
 
-local reflection = SMODS.Consumable({
+local reflection = femtoLabsCollection.TwilightCard({
     key = "reflection",
-    set = "m_femtoLabsCollection_twilight",
     config = {},
 	pos = {x = 6, y = 1},
 	loc_txt = {
@@ -1239,9 +1227,6 @@ local reflection = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 reflection.loc_vars = function(self, info_queue, card)
@@ -1302,9 +1287,8 @@ end
 
 -- treasure
 
-local treasure = SMODS.Consumable({
+local treasure = femtoLabsCollection.TwilightCard({
     key = "treasure",
-    set = "m_femtoLabsCollection_twilight",
     config = {extra = 10},
 	pos = {x = 8, y = 1},
 	loc_txt = {
@@ -1316,9 +1300,6 @@ local treasure = SMODS.Consumable({
         }
     },
 	cost = 6,
-    unlocked = true,
-	discovered = true,
-	atlas = "c_flc_twilight"
 })
 
 treasure.loc_vars = function(self, info_queue, card)
@@ -1461,17 +1442,14 @@ if next(SMODS.find_mod('RiftRaft')) then
         loc_txt = {
             name = "Cadence",
             text = {
-                "Add {C:attention}#1#{} random {V:1}Twilight{}",
-                "{V:1}Cards{} to the {C:riftraft_void}Void{}",
+                "Add {C:attention}#1#{} random {C:femtolabscollection_twilight}Twilight{}",
+                "{C:femtolabscollection_twilight}Cards{} to the {C:riftraft_void}Void{}",
             }
         },
         loc_vars = function(self, info_queue, card)
             return {
                 vars = {
                     card.ability.extra.amount,
-                    colours = {
-                        flc_twilight_colour
-                    }
                 }
             }
         end,

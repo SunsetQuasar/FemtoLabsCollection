@@ -140,7 +140,7 @@ local clown_car = SMODS.Joker({
 	"containing more than {C:attention}#2#",
     "{C:attention}cards{} of the kind in deck",
     "{C:inactive}(Currently{} {C:red}+#3#{C:inactive} Mult)",
-    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini",
+    "{C:chips,s:0.8}Concept, Art: ABuffZucchini",
         }
     },
 	rarity = 2,
@@ -356,8 +356,8 @@ local jackpot = SMODS.Joker({
     "{C:attention}three or more 7s{},",
     "each {C:attention}7{} has a {C:green}#1# in #2#{}",
     "chance to give {C:money}$#3#{s:0.85}",
-    "{C:inactive,s:0.8}Concept: goose!",
-    "{C:inactive,s:0.8}Art: ABuffZucchini"
+    "{C:chips,s:0.8}Concept: goose!",
+    "{C:chips,s:0.8}Art: ABuffZucchini"
         }
     },
 	rarity = 2,
@@ -415,7 +415,7 @@ local allballs = SMODS.Joker({
         text = {
 	"{C:attention}Pairs{} give {C:money}$#1#{s:0.85}",
     "when played",
-    "{C:inactive,s:0.8}Art: ABuffZucchini"
+    "{C:chips,s:0.8}Art: ABuffZucchini"
         }
     },
 	rarity = 1,
@@ -593,7 +593,7 @@ local oldsocks = SMODS.Joker({
 	"This Joker gains {C:mult}+#1#{} Mult",
     "when a {C:attention}Pair{} is discarded",
     "{C:inactive}(Currently {}{C:mult}+#2#{}{C:inactive} Mult)",
-    "{C:inactive,s:0.8}Art: ABuffZucchini"
+    "{C:chips,s:0.8}Art: ABuffZucchini"
         }
     },
 	rarity = 1,
@@ -648,7 +648,7 @@ local cascade = SMODS.Joker({
 	"{C:attention}First played card{}", 
     "in the round lowers its ",
     "{C:attention}rank{} by {C:attention}#1#{} before scoring",
-    "{C:inactive,s:0.8}Concept: ABuffZucchini"
+    "{C:chips,s:0.8}Concept: ABuffZucchini"
         }
     },
 	rarity = 2,
@@ -744,7 +744,7 @@ local divinelight = SMODS.Joker({
 	"Cards held in hand", 
     "become {C:attention}Bonus Cards{} after",
     "the {C:attention}final hand{} of round",
-    "{C:inactive,s:0.8}Concept: ABuffZucchini"
+    "{C:chips,s:0.8}Concept: ABuffZucchini"
         }
     },
 	rarity = 3,
@@ -796,7 +796,7 @@ local rollingstones = SMODS.Joker({
         text = {
 	"{C:attention}Stone Cards{} permanently", 
     "gain {C:mult}+#1#{} Mult when scored",
-    "{C:inactive,s:0.8}Concept: ABuffZucchini, Art: xolimono"
+    "{C:chips,s:0.8}Concept: ABuffZucchini, Art: xolimono"
         }
     },
 	rarity = 2,
@@ -860,7 +860,7 @@ local unfolding = SMODS.Joker({
     "round if scored hand",
     "contains {V:1}#2#{} cards",
     "{s:0.8}suit changes every hand",
-    "{C:inactive,s:0.8}Concept: ABuffZucchini"
+    "{C:chips,s:0.8}Concept: ABuffZucchini"
         }
     },
 	rarity = 1,
@@ -932,7 +932,7 @@ local cheese = SMODS.Joker({
 	"{X:mult,C:white}X#1#{} Mult", 
     "{C:green}#2# in #3#{} chance of being",
     "eaten on round end",
-    "{C:inactive,s:0.8}Art: ABuffZucchini"
+    "{C:chips,s:0.8}Art: ABuffZucchini"
         }
     },
 	rarity = 1,
@@ -1011,7 +1011,7 @@ local gooseberry = SMODS.Joker({
 	"from {C:attention}Booster Packs{}, reduces by", 
     "{C:red}#3#{} every round after",
     "opening a {C:attention}Booster Pack",
-    "{C:inactive,s:0.8}Concept: goose!"
+    "{C:chips,s:0.8}Concept: goose!"
         }
     },
 	rarity = 2,
@@ -1070,6 +1070,8 @@ gooseberry.calculate = function(self, card, context)
                     local berries = SMODS.find_card('j_femtoLabsCollection_zucchini')
                     for i=1, #berries do
 
+                        if berries[i].ability.extra.slots <= 0 then return end
+
                         local ed = berries[i].edition
                         berries[i].T.r = -0.2
                         berries[i]:juice_up(0.3, 0.4)
@@ -1094,6 +1096,7 @@ gooseberry.calculate = function(self, card, context)
                                 edition = ed
                             })
                             new_card:juice_up()
+                            new_card:add_to_deck()
                             card_eval_status_text(new_card, 'extra', nil, nil, nil, {message = 'Hello! I am Scraggly1.', colour = G.C.FILTER, instant = true, delay = 1.5})
                             G.jokers:emplace(new_card)
                             return true; end})) 
@@ -1153,11 +1156,15 @@ local fizzbuzz = SMODS.Joker({
 	atlas = "j_flc_jokers"
 })
 
+local gf = function(num) 
+    return math.max(math.floor(num), 1)
+end
+
 fizzbuzz.loc_vars = function(self, info_queue, card)
 	return {
         vars = {
-	        card.ability.extra.three,
-            card.ability.extra.five
+	        gf(card.ability.extra.three),
+            gf(card.ability.extra.five)
 	    }
     }
 end
@@ -1165,24 +1172,25 @@ end
 fizzbuzz.calculate = function(self, card, context)
     if context.blueprint then return end
     if context.setting_blind then
-        if G.GAME.dollars % 5 == 0 then
-            card.ability.extra.trigger = card.ability.extra.trigger + card.ability.extra.five
-        end
-        if G.GAME.dollars % 3 == 0 then
-            card.ability.extra.trigger = card.ability.extra.trigger + card.ability.extra.three
+        if G.GAME.dollars % gf(card.ability.extra.five) == to_big(0) then
+            card.ability.extra.trigger = card.ability.extra.trigger + gf(card.ability.extra.five)
         end
 
-        if card.ability.extra.trigger == 3 then
+        if G.GAME.dollars % gf(card.ability.extra.three) == to_big(0) then
+            card.ability.extra.trigger = card.ability.extra.trigger + gf(card.ability.extra.three)
+        end
+
+        if card.ability.extra.trigger == gf(card.ability.extra.three) then
             return {
                 message = "Fizz!",
                 colour = G.C.MONEY
             }
-        elseif card.ability.extra.trigger == 5 then
+        elseif card.ability.extra.trigger == gf(card.ability.extra.five) then
             return {
                 message = "Buzz!",
                 colour = G.C.MONEY
             }
-        elseif card.ability.extra.trigger == 8 then
+        elseif card.ability.extra.trigger == gf(card.ability.extra.five) + gf(card.ability.extra.three) then
             return {
                 message = "FizzBuzz!",
                 colour = G.C.MONEY
@@ -1306,7 +1314,7 @@ local pennies = SMODS.Joker({
 	"After {C:attention}#1#{} {C:inactive}[#2#]{} rounds, sell",
     "this Joker to add a {C:money}Gold Seal{}",
     "to {C:attention}#3#{} random cards in hand",
-    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+    "{C:chips,s:0.8}Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 2,
@@ -1379,7 +1387,7 @@ local envelope = SMODS.Joker({
     "of {V:1}#2#{} in a {C:attention}#3#{},",
     "destroy all other played cards",
     "{s:0.8}Rank, Suit and Poker Hand changes each round",
-    "{C:inactive,s:0.8}Concept, Art: tobyaaa"
+    "{C:chips,s:0.8}Concept, Art: tobyaaa"
         }
     },
 	rarity = 2,
@@ -1505,7 +1513,7 @@ local unordered = SMODS.Joker({
 	"Cards held in hand give {C:mult}+#1#{} Mult",
     "if none of their neighbors",
     "contain consecutive values",
-    "{C:inactive,s:0.8}Concept: zeodexic"
+    "{C:chips,s:0.8}Concept: zeodexic"
         }
     },
 	rarity = 1,
@@ -1561,7 +1569,7 @@ local coconut = SMODS.Joker({
 	"Scored cards permanently",
     "gain {C:chips}+#1#{} chips, decreases",
     "by {C:attention}#2#{} per card scored",
-    "{C:inactive,s:0.8}Concept: ABuffZucchini; Art: dewdrop"
+    "{C:chips,s:0.8}Concept: ABuffZucchini; Art: dewdrop"
         }
     },
 	rarity = 1,
@@ -1638,7 +1646,7 @@ local drill = SMODS.Joker({
         text = {
 	"{C:green}#1# in #2#{}, {C:green}#1# in #3#{} and {C:green}#1# in #4#{} chance",
     "for stone cards to retrigger",
-    "{C:inactive,s:0.8} Concept, Art: ABuffZucchini"
+    "{C:chips,s:0.8} Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 2,
@@ -1785,7 +1793,7 @@ local kanban = SMODS.Joker({
 	"This Joker gains {X:mult,C:white}X#1#{} Mult when you",
     "{C:attention}#2#{}, and loses {X:mult,C:white}X#3#{} Mult",
     "when you {C:attention}#4#{}",
-    "{C:inactive,s:0.8}(Currently {X:mult,C:white,s:0.8}X#5#{C:inactive,s:0.8} Mult, actions change every round)",
+    "{C:inactive,s:0.8}(Currently {X:mult,C:white,s:0.8}X#5#{C:chips,s:0.8} Mult, actions change every round)",
         }
     },
 	rarity = 3,
@@ -2221,7 +2229,7 @@ local blindfold = SMODS.Joker({
     "when selected, gains {C:chips}+#1#{} Chips",
     "when {C:attention}Boss Blind{} is defeated",
     "{C:inactive}(Currently {C:chips}+#2#{}{C:inactive} Chips)",
-    "{C:inactive,s:0.8} Concept, Art: ABuffZucchini"
+    "{C:chips,s:0.8} Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 2,
@@ -2421,7 +2429,7 @@ local frightened = SMODS.Joker({
         text = {
 	"{C:red}+#1#{} Discards, disabled",
     "during a {C:attention}Boss Blind",
-    "{C:inactive,s:0.8} Concept, Art: ABuffZucchini"
+    "{C:chips,s:0.8} Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 1,
@@ -2557,7 +2565,7 @@ local snowflake = SMODS.Joker({
     "single {C:attention}#1#{}, turn it into",
     "an {C:attention}Ice Card{} after scoring",
     "{s:0.8}Rank changes every round",
-    "{C:inactive,s:0.8}Concept: ABuffZucchini"
+    "{C:chips,s:0.8}Concept: ABuffZucchini"
         }
     },
 	rarity = 2,
@@ -2622,7 +2630,7 @@ local elephant = SMODS.Joker({
         text = {
 	"Retrigger {C:attention}last{} playing card",
     "once per {C:attention}Ivory Card{} held in hand",
-    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+    "{C:chips,s:0.8}Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 2,
@@ -2723,7 +2731,7 @@ local curtains = SMODS.Joker({
 	"{C:green}#1# in #2#{} cards are drawn {C:attention}face down",
     "{C:attention}face down{} cards in hand gain a",
     "random {C:attention}Enhancement{} at the end of round",
-    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+    "{C:chips,s:0.8}Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 3,
@@ -2793,9 +2801,9 @@ local dawn = SMODS.Joker({
         text = {
 	"If hand scores between {C:attention}#1#%{} and",
     "{C:attention}#2#%{} of blind requirement, create",
-    "a {V:1}Twilight Card",
+    "a {C:femtolabscollection_twilight}Twilight Card",
     "{C:inactive}(Must have room)",
-    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+    "{C:chips,s:0.8}Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 3,
@@ -2812,9 +2820,6 @@ dawn.loc_vars = function(self, info_queue, card)
         vars = {
             card.ability.extra.min * 100,
             card.ability.extra.max * 100,
-            colours = {
-                flc_twilight_colour
-            }
         }
     }    
 end
@@ -2830,7 +2835,7 @@ dawn.calculate = function(self, card, context)
             func = (function()
                 if ((G.GAME.chips - card.ability.extra.lastchips) >= (G.GAME.blind.chips * card.ability.extra.min)) and ((G.GAME.chips - card.ability.extra.lastchips) <= (G.GAME.blind.chips * card.ability.extra.max)) and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
                     G.GAME.consumeable_buffer = G.GAME.consumeable_buffer + 1
-                    card_eval_status_text(card, 'extra', nil, nil, nil, {message = '+1 Twilight', colour = flc_twilight_colour, instant = true})
+                    card_eval_status_text(card, 'extra', nil, nil, nil, {message = '+1 Twilight', colour = femtoLabsCollection.twilight_cards.secondary_colour, instant = true})
                     local _card = SMODS.create_card({
                             set = 'm_femtoLabsCollection_twilight',
                             key_append = 'flc_dawn'
@@ -2864,7 +2869,7 @@ local zucchini = SMODS.Joker({
 	"{C:attention}+#1#{} card#2# available in shop",
     "Reduces by {C:red}#3#{} at",
     "the end of round",
-    "{C:inactive,s:0.8}Concept: ABuffZucchini"
+    "{C:chips,s:0.8}Concept: ABuffZucchini, Art: frenchtardigrade"
         }
     },
 	rarity = 2,
@@ -2924,6 +2929,8 @@ zucchini.calculate = function(self, card, context)
                     local berries = SMODS.find_card('j_femtoLabsCollection_gooseberry')
                     for i=1, #berries do
 
+                        if berries[i].ability.extra.choices <= 0 then break end
+
                         local ed = berries[i].edition
                         berries[i].T.r = -0.2
                         berries[i]:juice_up(0.3, 0.4)
@@ -2948,6 +2955,7 @@ zucchini.calculate = function(self, card, context)
                                 edition = ed
                             })
                             new_card:juice_up()
+                            new_card:add_to_deck()
                             card_eval_status_text(new_card, 'extra', nil, nil, nil, {message = 'Hello! I am Scraggly1.', colour = G.C.FILTER, instant = true, delay = 1.5})
                             G.jokers:emplace(new_card)
                             return true; end})) 
@@ -2978,7 +2986,7 @@ local hostage = SMODS.Joker({
         text = {
 	"Cannot win {C:attention}Blind{}",
     "until {C:attention}0{} hands left",
-    "{C:inactive,s:0.8}Concept, Art: vitellary"
+    "{C:chips,s:0.8}Concept, Art: vitellary"
         }
     },
 	rarity = 2,
@@ -3025,7 +3033,7 @@ local chocopenny = SMODS.Joker({
 	"Scored cards {C:attention}permanently{} gain",
     "a {C:money}$#1#{} bonus when scored",
     "Eaten in {C:attention}#2#{} hand#3#",
-    "{C:inactive,s:0.8}Art: ABuffZucchini"
+    "{C:chips,s:0.8}Art: ABuffZucchini"
         }
     },
 	rarity = 2,
@@ -3159,8 +3167,8 @@ local lamppost = SMODS.Joker({
         name = 'Lamppost',
         text = {
 	"All {C:attention}Booster Packs{} contain",
-    "an additional {V:1}Twilight Card{}",
-    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+    "an additional {C:femtolabscollection_twilight}Twilight Card{}",
+    "{C:chips,s:0.8}Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 3,
@@ -3171,16 +3179,6 @@ local lamppost = SMODS.Joker({
 	perishable_compat = true,
 	atlas = "j_flc_jokers"
 })
-
-lamppost.loc_vars = function(self, info_queue, card)
-    return {
-        vars = {
-            colours = {
-                flc_twilight_colour
-            }
-        }
-    }
-end
 
 lamppost.calculate = function(self, card, context)
     if context.open_booster then
@@ -3196,7 +3194,7 @@ lamppost.calculate = function(self, card, context)
                     G.pack_cards:emplace(_card)
                 return true
             end)}))
-        card_eval_status_text(card, 'extra', nil, nil, nil, {message = "+1 Twilight", colour = flc_twilight_colour})
+        card_eval_status_text(card, 'extra', nil, nil, nil, {message = "+1 Twilight", colour = femtoLabsCollection.twilight_cards.secondary_colour})
     end
 end
 
@@ -3214,7 +3212,7 @@ local dancer = SMODS.Joker({
 	"If the {C:attention}first hand{} of {C:attention}Ante",
     "is a hand that hasn't",
     "been played yet, gain {C:money}$#1#{}",
-    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+    "{C:chips,s:0.8}Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 1,
@@ -3265,9 +3263,9 @@ local snooze = SMODS.Joker({
         text = {
 	"If {C:attention}Blind{} is defeated with",
     "{C:attention}0 {C:blue}hands{} remaining, create",
-    "a {V:1}Twilight{} or {C:spectral}Spectral{} card",
+    "a {C:femtolabscollection_twilight}Twilight{} or {C:spectral}Spectral{} card",
     "{C:inactive}(Must have room)",
-    "{C:inactive,s:0.8}Concept, Art: ABuffZucchini"
+    "{C:chips,s:0.8}Concept, Art: ABuffZucchini"
         }
     },
 	rarity = 3,
@@ -3278,16 +3276,6 @@ local snooze = SMODS.Joker({
 	perishable_compat = true,
 	atlas = "j_flc_jokers"
 })
-
-snooze.loc_vars = function(self, info_queue, card)
-    return {
-        vars = {
-            colours = {
-                flc_twilight_colour
-            }
-        }
-    }
-end
 
 snooze.calculate = function(self, card, context)
     if context.end_of_round and context.main_eval and G.GAME.current_round.hands_left < 1 and #G.consumeables.cards + G.GAME.consumeable_buffer < G.consumeables.config.card_limit then
@@ -3307,7 +3295,7 @@ snooze.calculate = function(self, card, context)
                     G.GAME.consumeable_buffer = 0
                 return true
             end)}))
-        card_eval_status_text(card, 'extra', nil, nil, nil, {message = which and "+1 Twilight" or localize('k_plus_spectral'), colour = which and flc_twilight_colour or G.C.SECONDARY_SET.Spectral})
+        card_eval_status_text(card, 'extra', nil, nil, nil, {message = which and "+1 Twilight" or localize('k_plus_spectral'), colour = which and femtoLabsCollection.twilight_cards.secondary_colour or G.C.SECONDARY_SET.Spectral})
     end
 end
 
@@ -3324,7 +3312,7 @@ local sevenball = SMODS.Joker({
         text = {
             "{C:green}#1# in #2#{} chance for each",
             "played {C:attention}7{} to create a",
-            "{V:1}Twilight{} card when scored",
+            "{C:femtolabscollection_twilight}Twilight{} card when scored",
             "{C:inactive}(Must have room)",
         }
     },
@@ -3342,9 +3330,6 @@ sevenball.loc_vars = function(self, info_queue, card)
         vars = {
             (G.GAME and G.GAME.probabilities.normal or 1),
             card.ability.extra,
-            colours = {
-                flc_twilight_colour
-            }
         }
     }
 end
@@ -3369,7 +3354,7 @@ sevenball.calculate = function(self, card, context)
                         return true
                     end)}))
             end},
-            colour = flc_twilight_colour,
+            colour = femtoLabsCollection.twilight_cards.secondary_colour,
             card = card
         }
     end
@@ -3654,7 +3639,7 @@ local cityplan = SMODS.Joker({
             "{C:attention}Retriggers{} all {C:attention}Jokers{} to the left",
             "Lose {C:money}$#1#{} every time a Joker",
             "is {C:attention}retriggered{} by City Plan",
-            "{C:inactive,s:0.8}(Concept: ABuffZucchini)"
+            "{C:chips,s:0.8}(Concept: ABuffZucchini)"
 
         }
     },
@@ -3768,9 +3753,9 @@ if next(SMODS.find_mod('Cryptid')) then
         loc_txt = {
             name = "Sol",
             text = {
-                "All Twilight cards are {C:dark_edition}Negative{}",
+                "All {C:femtolabscollection_twilight}Twilight{} cards are {C:dark_edition}Negative{}",
                 "and can appear multiple times",
-                "Twilight cards each give",
+                "{C:femtolabscollection_twilight}Twilight{} cards each give",
                 "{X:dark_edition,C:white}^#1#{} Mult when held"
             },
         },

@@ -22,7 +22,7 @@ function SMODS.current_mod.process_loc_text()
 			" ",
 			"{X:mult,C:white}Art:",
 			"sunsetquasar, ABuffZucchini, tobyaaa",
-			"xolimono, vitellary & dewdrop",
+			"xolimono, vitellary, frenchtardigrade & dewdrop",
 			" ",
 			"{X:black,C:white}Playtesting:",
 			"JayTeff, zeodexic, ABuffZucchini,",
@@ -42,14 +42,5 @@ function SMODS.current_mod.process_loc_text()
 
 	G.localization.misc.v_text['ch_c_flc_one_booster'] = {
 		"{C:red}-1{} booster pack each {C:attention}shop"
-	}
-
-	G.localization.misc.dictionary.c_femtoLabsCollection_negative_cards = "Negative Playing Cards"
-	G.localization.misc.dictionary.c_femtoLabsCollection_negative_cards_desc = {
-		"Allows for cards related to",
-		"negative cards to appear",
-		"However, they can be janky or overpowered",
-		"so disabling it is an option",
-		"(Game restart is required)"
 	}
 end
