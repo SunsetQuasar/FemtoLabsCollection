@@ -3850,8 +3850,8 @@ femtoLabsCollection.clean_center_keys = nil
 femtoLabsCollection.get_clean_centers_table_or_create = function()
     if femtoLabsCollection.clean_center_keys then return femtoLabsCollection.clean_center_keys end
     femtoLabsCollection.clean_center_keys = {}
-    for _, center in pairs(G.P_CENTERS) do
-        if center.set and center.config and (center.set ~= 'Edition') then
+    for k, center in pairs(G.P_CENTERS) do
+        if center.set and center.config and (center.set ~= 'Edition') and k ~= 'c_base' then
             femtoLabsCollection.clean_center_keys[#femtoLabsCollection.clean_center_keys+1] = center.key
         end
     end
