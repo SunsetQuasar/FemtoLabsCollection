@@ -3863,7 +3863,8 @@ local scragle_options = {
     'twodollar',
     'slurp',
     'consumablecard',
-    'plusjoker'
+    'plusjoker',
+    'plusslot'
 }
 
 scraggly.set_ability = function(self, card)
@@ -3902,6 +3903,19 @@ scraggly.calculate = function(self, card, context)
         other_shop_card:juice_up()
         return {
             message = 'Hello!'
+        }
+    end
+
+    if context.ending_shop and card.ability.extra == 'plusslot' then
+        G.E_MANAGER:add_event(Event({func = function()
+            G.GAME.starting_params.ante_scaling = G.GAME.starting_params.ante_scaling + 1
+            if G.jokers then 
+                G.jokers.config.card_limit = G.jokers.config.card_limit + 1
+            end
+        return true end }))
+        return {
+            message = '+Slot!',
+            colour = G.C.ETERNAL
         }
     end
 
