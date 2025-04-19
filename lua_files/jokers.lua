@@ -3912,6 +3912,8 @@ scraggly.calculate = function(self, card, context)
                     func = (function()
                         local c = pseudorandom_element(G.hand.cards, pseudoseed('flc_scraggly_concard'))
                         c:set_ability(pseudorandom_element(G.P_CENTER_POOLS.Consumeables, pseudoseed('flc_scraggly_concard322')))
+                        if c.ability and c.ability.max_highlighted then c.ability.max_highlighted = c.ability.max_highlighted + 1 end
+                        if c.ability.consumeable and c.ability.consumeable.max_highlighted then c.ability.consumeable.max_highlighted = c.ability.consumeable.max_highlighted + 1 end
                         c:juice_up()
                         if c.edition and c.edition.negative then G.hand:change_size(1) end
                     return true end)}))
@@ -3973,7 +3975,6 @@ scraggly.calculate = function(self, card, context)
             return {
                 message = '+Joker!',
                 func = function()
-                    for i=1, 3 do
                         local card = SMODS.create_card({
                             set = 'Joker',
                             skip_materialize = true,
@@ -3993,7 +3994,6 @@ scraggly.calculate = function(self, card, context)
                         card:start_materialize()
                         G.jokers:emplace(card)
                         card:set_cost()
-                    end
                 end
             }
         end
