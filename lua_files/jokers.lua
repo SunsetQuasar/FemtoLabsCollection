@@ -3204,7 +3204,7 @@ end
 
 local dancer = SMODS.Joker({
 	key = "dancer",
-    config = {extra = {dollars = 20, active = false}},
+    config = {extra = {dollars = 20, active = false, should_disable = false}},
 	pos = {x = 6, y = 5},
 	loc_txt = { 
         name = 'Dancer',
@@ -3239,13 +3239,16 @@ dancer.loc_vars = function(self, info_queue, card)
 end
 
 dancer.calculate = function(self, card, context)
-    if context.before and context.cardarea == G.jokers and G.GAME.hands[context.scoring_name].played <= 1 and card.ability.extra.active then
-        card.ability.extra.active = false
+    if context.before and context.cardarea == G.jokers and G.GAME.hands[context.scoring_name].played <= 1 and (card.ability.extra.active) then
+        card.ability.extra.should_disable = true
         return {
             dollars = card.ability.extra.dollars
         }
     end
-    if context.end_of_round and G.GAME.blind.boss then
+    if card.ability.extra.should_disable and context.after and not context.blueprint then
+        card.ability.extra.active = false
+    end
+    if context.end_of_round and G.GAME.blind.boss and not context.blueprint then
         card.ability.extra.active = true
     end
 end
