@@ -893,6 +893,8 @@ fulfillment.use = function(self, card, area, copier)
 
     G.E_MANAGER:add_event(Event({
         func = (function()
+            play_sound('tarot1')
+            joker:juice_up();
             joker:set_edition(G.P_CENTER_POOLS.Edition[edition_id + 1].key)
             return true
         end)

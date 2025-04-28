@@ -141,9 +141,40 @@ position = 'after'
 match_indent = true
 payload = '''
 if next(SMODS.find_card('j_femtoLabsCollection_hostage')) then
-    if G.GAME.current_round.hands_left >= 1 then
+    if G.GAME.current_round.hands_left >= 1 and not (#G.hand.cards < 1 and #G.deck.cards < 1 and #G.play.cards < 1) and G.STATE == G.STATES.NEW_ROUND then
         G.STATE = G.STATES.DRAW_TO_HAND
     end
+end
+'''
+
+[[patches]]
+[patches.pattern]
+target = "functions/state_events.lua"
+pattern = '''
+            G.GAME.current_round.discards_used = G.GAME.current_round.discards_used + 1
+            G.STATE = G.STATES.DRAW_TO_HAND
+'''
+position = 'after'
+match_indent = true
+payload = '''
+if next(SMODS.find_card('j_femtoLabsCollection_hostage')) then
+    if G.GAME.chips - G.GAME.blind.chips >= 0 or G.GAME.current_round.hands_left < 1 then
+        G.STATE = G.STATES.NEW_ROUND
+    end
+end
+'''
+
+[[patches]]
+[patches.pattern]
+target = "functions/state_events.lua"
+pattern = '''
+                game_over = false
+'''
+position = 'before'
+match_indent = true
+payload = '''
+if next(SMODS.find_card('j_femtoLabsCollection_hostage')) and (#G.hand.cards < 1 and #G.deck.cards < 1 and #G.play.cards < 1) then
+    G.STATE_COMPLETE = true
 end
 '''
 
@@ -157,6 +188,18 @@ self.flc_soldarea = femtoLabsCollection.SoldArea(
     0, 0,
     CAI.discard_W*1.5, CAI.discard_W, -- square
     {card_limit = 500, type = 'soldarea'})
+'''
+match_indent = true
+
+[[patches]]
+[patches.pattern]
+target = "game.lua"
+pattern = '''
+        base_reroll_cost = 5,
+'''
+position = "after"
+payload = '''
+flc_first_hand_of_ante_played = false,
 '''
 match_indent = true
 

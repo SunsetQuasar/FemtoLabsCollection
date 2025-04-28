@@ -93,7 +93,7 @@ local medusas_gaze = SMODS.Joker({
 })
 
 medusas_gaze.calculate = function(self, card, context)
-    if context.individual and not context.blueprint then
+    if context.individual and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
         if context.cardarea == G.hand then
             if context.other_card:is_face() and context.other_card.ability.name ~= 'Stone Card' then
                 local other_card = context.other_card
@@ -227,7 +227,7 @@ supercollider.loc_vars = function(self, info_queue, card)
 end
 
 supercollider.calculate = function(self, card, context)
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
 
     if context.first_hand_drawn then
         local eval = function() return G.GAME.current_round.hands_played == 0 end
@@ -302,7 +302,7 @@ transmutation.in_pool = function(self, args)
 end
 
 transmutation.calculate = function(self, card, context)
-    if context.individual and not context.blueprint then
+    if context.individual and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
 		if context.cardarea == G.play then
             local other_card = context.other_card
             if SMODS.has_enhancement(context.other_card, 'm_stone') then
@@ -468,7 +468,7 @@ end
 local gyroscope = SMODS.Joker({
 	name = "flc_Gyroscope",
 	key = "gyroscope",
-    config = {extra = {mult = 6}},
+    config = {extra = {mult = 4}},
 	pos = {x = 0, y = 1},
 	loc_txt = { 
         name = 'Gyroscope',
@@ -476,7 +476,7 @@ local gyroscope = SMODS.Joker({
 	"{C:mult}+#1#{} Mult",
     "{C:dark_edition}Edition{} cycles",
     "every hand",
-    "{C:inactive}(Negative Excluded){s:0.85}"
+    "{C:inactive,s:0.85}({C:dark_edition,s:0.85}Negative {C:inactive,s:0.85}Excluded)"
         }
     },
 	rarity = 1,
@@ -500,29 +500,34 @@ gyroscope.calculate = function(self, card, context)
         }
     end
 
-    if context.cardarea == G.jokers and context.after and not context.blueprint then
+    if context.cardarea == G.jokers and context.after and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
+
+        local edition_id = 1;
+
+        for i, ed in ipairs(G.P_CENTER_POOLS.Edition) do
+            if not card.edition then break end
+            if card.edition.key == ed.key then
+                edition_id = i
+                break
+            end
+        end
+
+        if edition_id == #G.P_CENTER_POOLS.Edition then edition_id = 0 end
+    
+        if G.P_CENTER_POOLS.Edition[edition_id + 1].key == 'e_negative' then edition_id = edition_id + 1 end -- skip negative
+        if G.P_CENTER_POOLS.Edition[edition_id + 1].key == 'e_ccc_mirrored' then edition_id = edition_id + 1 end -- skip mirrored
+
         G.E_MANAGER:add_event(Event({
-            trigger = 'after',
-            delay = 0.0,
             func = (function()
-                card:juice_up()
-                if not card.edition then
-                    card:set_edition({foil = true})
-                elseif card.edition.foil then
-                    card:set_edition({holo = true})
-                elseif card.edition.holo then
-                    card:set_edition({polychrome = true})
-                elseif card.edition.polychrome then
-                    card:set_edition(nil)
-                elseif card.edition.negative then
-                    if #G.jokers.cards >= G.jokers.config.card_limit - 1 then
-                        card_eval_status_text(card, 'extra', nil, nil, nil, {message = 'Stuck!', colour = G.C.PERISHABLE, instant = true})
-                    else
-                        card:set_edition(nil)
-                    end
+                card:juice_up();
+                if card.edition and card.edition.negative and #G.jokers.cards >= G.jokers.config.card_limit - 1 then
+                    card_eval_status_text(card, 'extra', nil, nil, nil, {message = 'Stuck!', colour = G.C.PERISHABLE, instant = true})
+                else
+                    card:set_edition(G.P_CENTER_POOLS.Edition[edition_id + 1].key)
                 end
                 return true
-            end)}))
+            end)
+        }))
     end
 end
 
@@ -610,7 +615,7 @@ function oldsocks.loc_vars(self, info_queue, card)
 end
 
 oldsocks.calculate = function(self, card, context)
-    if context.pre_discard and not context.blueprint then
+    if context.pre_discard and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
         if G.FUNCS.get_poker_hand_info(G.hand.highlighted) == "Pair" then
             card.ability.extra.mult = card.ability.extra.mult + card.ability.extra.mult_inc
             return {
@@ -761,7 +766,7 @@ function divinelight.loc_vars(self, info_queue, card)
 end
 
 divinelight.calculate = function(self, card, context)
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
     if context.individual and context.cardarea == G.hand and context.end_of_round then
         local other_card = context.other_card
         if context.other_card.ability.effect ~= 'Bonus Card' and not context.other_card.debuff then return {
@@ -966,7 +971,7 @@ cheese.calculate = function(self, card, context)
             Xmult_mod = card.ability.extra.Xmult
         }
     end
-    if context.end_of_round and context.cardarea == G.jokers and not context.blueprint then
+    if context.end_of_round and context.cardarea == G.jokers and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
         if pseudorandom('flc_savoury_cheese') < G.GAME.probabilities.normal/card.ability.extra.odds then 
             G.E_MANAGER:add_event(Event({
                 func = function()
@@ -1035,7 +1040,7 @@ end
 
 gooseberry.calculate = function(self, card, context)
 
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
 
     if context.open_booster then
         card.ability.extra.active = true
@@ -1170,7 +1175,7 @@ fizzbuzz.loc_vars = function(self, info_queue, card)
 end
 
 fizzbuzz.calculate = function(self, card, context)
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
     if context.setting_blind then
         if G.GAME.dollars % gf(card.ability.extra.five) == to_big(0) then
             card.ability.extra.trigger = card.ability.extra.trigger + gf(card.ability.extra.five)
@@ -1253,7 +1258,7 @@ end
 
 call.calculate = function(self, card, context)
     if context.cardarea == G.play then
-        if context.individual and context.other_card == context.scoring_hand[#context.scoring_hand] and not context.blueprint then
+        if context.individual and context.other_card == context.scoring_hand[#context.scoring_hand] and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
 
             local cards_affected = {}
 
@@ -1284,7 +1289,7 @@ call.calculate = function(self, card, context)
             end
         end
     end
-    if context.after and context.cardarea == G.jokers and not context.blueprint then
+    if context.after and context.cardarea == G.jokers and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
         local temp = G.P_CENTER_POOLS["Enhanced"]
         if temp['m_stone'] then temp['m_stone'] = nil end
         card.ability.extra.curr_key = pseudorandom_element(temp, pseudoseed('flc_call_random')).key
@@ -1335,7 +1340,7 @@ local pennies = SMODS.Joker({
         }
     end,
     calculate = function(self, card, context)
-        if context.blueprint then return end
+        if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
         if context.end_of_round and context.cardarea == G.jokers then
             card.ability.extra.progress = card.ability.extra.progress + 1
             if card.ability.extra.progress == card.ability.extra.treshold then 
@@ -1444,7 +1449,7 @@ envelope.set_ability = function(self, card)
 end
 
 envelope.calculate = function(self, card, context)
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
     if context.before and context.cardarea == G.play then
         card.ability.extra.destroy_these_mfs = {}
     end
@@ -1607,7 +1612,7 @@ coconut.calculate = function(self, card, context)
         }
     end
 
-    if context.after and not context.blueprint then
+    if context.after and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
 
         if card.ability.extra.chips <= 0 then
             G.E_MANAGER:add_event(Event({
@@ -1793,7 +1798,7 @@ local kanban = SMODS.Joker({
 	"This Joker gains {X:mult,C:white}X#1#{} Mult when you",
     "{C:attention}#2#{}, and loses {X:mult,C:white}X#3#{} Mult",
     "when you {C:attention}#4#{}",
-    "{C:inactive,s:0.8}(Currently {X:mult,C:white,s:0.8}X#5#{C:chips,s:0.8} Mult, actions change every round)",
+    "{C:inactive,s:0.8}(Currently {X:mult,C:white,s:0.8}X#5#{C:inactive,s:0.8} Mult, actions change every round)",
         }
     },
 	rarity = 3,
@@ -1830,7 +1835,7 @@ kanban.calculate = function(self, card, context) -- i'm scared.
             x_mult = card.ability.extra.xmult
         }
     end
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
 
     local extra = 0
 
@@ -2261,7 +2266,7 @@ blindfold.calculate = function(self, card, context)
         end
     end
 
-    if context.end_of_round and context.cardarea == G.jokers and G.GAME.blind.boss and not context.blueprint then
+    if context.end_of_round and context.cardarea == G.jokers and G.GAME.blind.boss and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
         card.ability.extra.chips = card.ability.extra.chips + card.ability.extra.chip_mod
         return {
             message = localize('k_upgrade_ex'),
@@ -2467,7 +2472,7 @@ frightened.remove_from_deck = function(self, card, from_debuff)
 end
 
 frightened.calculate = function(self, card, context)
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
     if context.setting_blind and context.cardarea == G.jokers then
         if context.blind.boss and not card.debuff then
             card:set_debuff(true)
@@ -2591,7 +2596,7 @@ snowflake.set_ability = function(self, card)
 end
 
 snowflake.calculate = function(self, card, context)
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
     if context.cardarea == G.jokers and context.final_scoring_step and #context.full_hand == 1 and context.full_hand[1].base.value == card.ability.extra.rank and not SMODS.get_enhancements(context.full_hand[1])['m_femtoLabsCollection_ice_card'] then
         return {
             func = function()
@@ -2663,6 +2668,7 @@ elephant.calculate = function(self, card, context)
         for i=1, #G.hand.cards do
             if SMODS.get_enhancements(G.hand.cards[i])['m_femtoLabsCollection_ivory_card'] then quant = quant + 1 end
         end
+        if quant == 0 then return end
         return {
             message = localize('k_again_ex'),
             repetitions = quant,
@@ -2748,7 +2754,7 @@ curtains.loc_vars = function(self, info_queue, card)
 end
 
 curtains.calculate = function(self, card, context)
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
     if context.setting_blind then card.ability.first_card_evaluated = true end
     if context.end_of_round and context.individual and context.cardarea == G.hand then
         if context.other_card.facing == 'back' then
@@ -3068,7 +3074,7 @@ chocopenny.calculate = function(self, card, context)
         }
     end 
 
-    if context.after and context.cardarea == G.jokers and not context.blueprint then
+    if context.after and context.cardarea == G.jokers and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
 
         card.ability.extra.hands_left = card.ability.extra.hands_left - 1
 
@@ -3139,7 +3145,7 @@ apotheosis.loc_vars = function(self, info_queue, card)
 end
 
 apotheosis.calculate = function(self, card, context)
-    if G.GAME.current_round.hands_played == 0 and context.individual and context.cardarea == 'unscored' and not context.blueprint then
+    if G.GAME.current_round.hands_played == 0 and context.individual and context.cardarea == 'unscored' and not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then
         card.ability.extra.chips = card.ability.extra.chips + card.ability.extra.chip_mod
         return {
             message = localize('k_upgrade_ex'),
@@ -3204,7 +3210,7 @@ end
 
 local dancer = SMODS.Joker({
 	key = "dancer",
-    config = {extra = {dollars = 20, active = false, should_disable = false}},
+    config = {extra = {dollars = 20}},
 	pos = {x = 6, y = 5},
 	loc_txt = { 
         name = 'Dancer',
@@ -3224,12 +3230,6 @@ local dancer = SMODS.Joker({
 	atlas = "j_flc_jokers"
 })
 
-dancer.set_ability = function(self, card)
-    if G.GAME.current_round.hands_played <= 0 and G.GAME.round_resets.blind_states.Small ~= 'Defeated' then
-        card.ability.extra.active = true
-    end
-end
-
 dancer.loc_vars = function(self, info_queue, card)
     return {
         vars = {
@@ -3239,18 +3239,23 @@ dancer.loc_vars = function(self, info_queue, card)
 end
 
 dancer.calculate = function(self, card, context)
-    if context.before and context.cardarea == G.jokers and G.GAME.hands[context.scoring_name].played <= 1 and (card.ability.extra.active) then
-        card.ability.extra.should_disable = true
+    if context.before and context.cardarea == G.jokers and G.GAME.hands[context.scoring_name].played <= 1 and not G.GAME.flc_first_hand_of_ante_played then
         return {
             dollars = card.ability.extra.dollars
         }
     end
-    if card.ability.extra.should_disable and context.after and not context.blueprint then
-        card.ability.extra.active = false
-    end
-    if context.end_of_round and G.GAME.blind.boss and not context.blueprint then
-        card.ability.extra.active = true
-    end
+end
+
+local endRef = end_round
+end_round = function()
+    if G.GAME.blind.boss then G.GAME.flc_first_hand_of_ante_played = false end
+    endRef()
+end
+
+local playRef = evaluate_play_after
+evaluate_play_after = function(text, disp_text, poker_hands, scoring_hand, non_loc_disp_text, percent, percent_delta)
+    playRef(text, disp_text, poker_hands, scoring_hand, non_loc_disp_text, percent, percent_delta)
+    if not G.GAME.flc_first_hand_of_ante_played then G.GAME.flc_first_hand_of_ante_played = true end
 end
 
 -------- end dancer --------
@@ -3399,7 +3404,7 @@ cloud10.loc_vars = function(self, info_queue, card)
 end
 
 cloud10.calculate = function(self, card, context)
-    if context.blueprint then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) then return end
     if context.individual and context.cardarea == 'unscored' and context.other_card:get_id() == 10 then
         card.ability.extra.dollars = card.ability.extra.dollars + card.ability.extra.dollar_mod
     end
@@ -3451,7 +3456,7 @@ weegreedy.loc_vars = function(self, info_queue, card)
 end
 
 weegreedy.calculate = function(self, card, context)
-    if (not context.blueprint) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
+    if (not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker)) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
         card.ability.extra.progress = card.ability.extra.progress + 1
         if card.ability.extra.progress >= card.ability.extra.req then
             card.ability.extra.money =  card.ability.extra.money + 1
@@ -3507,7 +3512,7 @@ weelusty.loc_vars = function(self, info_queue, card)
 end
 
 weelusty.calculate = function(self, card, context)
-    if (not context.blueprint) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
+    if (not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker)) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
         card.ability.x_mult = card.ability.x_mult + card.ability.extra.xmult_mod
         return {
             extra = {focus = card, message = localize('k_upgrade_ex')},
@@ -3553,7 +3558,7 @@ weewrathful.loc_vars = function(self, info_queue, card)
 end
 
 weewrathful.calculate = function(self, card, context)
-    if (not context.blueprint) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
+    if (not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker)) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
         card.ability.extra.chips = card.ability.extra.chips + card.ability.extra.chip_mod
         return {
             extra = {focus = card, message = localize('k_upgrade_ex')},
@@ -3608,7 +3613,7 @@ weegluttonous.loc_vars = function(self, info_queue, card)
 end
 
 weegluttonous.calculate = function(self, card, context)
-    if (not context.blueprint) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
+    if (not (context.blueprint or context.retrigger_joker_check or context.retrigger_joker)) and context.individual and context.cardarea == G.play and context.other_card:is_suit(card.ability.extra.suit) then
         card.ability.extra.progress = card.ability.extra.progress + 1
         if card.ability.extra.progress >= card.ability.extra.req then
             card.ability.extra.mult = card.ability.extra.mult + card.ability.extra.mult_mod
@@ -3634,14 +3639,15 @@ end
 
 local cityplan = SMODS.Joker({
 	key = "cityplan",
-    config = {extra = 3},
+    config = {extra = 1},
 	pos = {x = 4, y = 6},
 	loc_txt = { 
         name = 'City Plan',
         text = {
-            "{C:attention}Retriggers{} all {C:attention}Jokers{} to the left",
-            "Lose {C:money}$#1#{} every time a Joker",
-            "is {C:attention}retriggered{} by City Plan",
+            "{C:attention}Retriggers{} all {C:attention}Jokers{} to the {C:attention}left",
+            "Lose {C:money}$#1#{} per Joker to the {C:attention}left",
+            "when a Joker is",
+            "{C:attention}retriggered{} by City Plan",
             "{C:chips,s:0.8}(Concept: ABuffZucchini)"
 
         }
@@ -3674,9 +3680,10 @@ cityplan.calculate = function(self, card, context)
                 other = i
             end
         end
+
         if city and other and city > other then
             return {
-                dollars = -card.ability.extra,
+                dollars = -(city-1) * card.ability.extra,
                 repetitions = 1,
             }
         end
@@ -3882,7 +3889,7 @@ end
 
 scraggly.calculate = function(self, card, context)
 
-    if context.blueprint or context.check_enhancement or context.modify_scoring_hand or context.debuff_hand or context.cry_press then return end
+    if (context.blueprint or context.retrigger_joker_check or context.retrigger_joker) or context.check_enhancement or context.modify_scoring_hand or context.debuff_hand or context.cry_press or context.check_enhancement then return end
 
     if pseudorandom('Hello! I am Scraggly4.') < 1/91.4 then 
         ease_background_colour{scraggly_allow = true, new_colour = {pseudorandom('hello11'), pseudorandom('hello12'), pseudorandom('hello13'), 1}, special_colour = {pseudorandom('hello21'), pseudorandom('hello22'), pseudorandom('hello23'), 1}, tertiary_colour = {pseudorandom('hello31'), pseudorandom('hello32'), pseudorandom('hello33'), 1}, contrast = pseudorandom('hellocontrast') * 2+1}
